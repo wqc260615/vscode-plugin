@@ -1,7 +1,7 @@
 {
   "name": "vscode-ai-assistant",
   "displayName": "AI Assistant",
-  "description": "A local LLM-powered AI assistant with Ollama integration",
+  "description": "A local LLM-powered AI assistant",
   "version": "0.0.1",
   "engines": {
     "vscode": "^1.99.0"
@@ -9,14 +9,18 @@
   "categories": [
     "Other",
     "Machine Learning",
-    "Snippets"
+    "Snippets",
+    "Programming Languages"
   ],
   "keywords": [
     "ai",
     "assistant",
     "ollama",
     "llm",
-    "chat"
+    "chat",
+    "completion",
+    "autocomplete",
+    "copilot"
   ],
   "activationEvents": [
     "onStartupFinished"
@@ -77,6 +81,26 @@
         "command": "aiAssistant.sendToAssistant",
         "title": "Send to AI Assistant",
         "category": "AI Assistant"
+      },
+      {
+        "command": "aiAssistant.acceptCompletion",
+        "title": "Accept AI Completion",
+        "category": "AI Assistant"
+      },
+      {
+        "command": "aiAssistant.rejectCompletion",
+        "title": "Reject AI Completion",
+        "category": "AI Assistant"
+      },
+      {
+        "command": "aiAssistant.triggerCompletion",
+        "title": "Trigger AI Completion",
+        "category": "AI Assistant"
+      },
+      {
+        "command": "aiAssistant.toggleCompletion",
+        "title": "Toggle AI Code Completion",
+        "category": "AI Assistant"
       }
     ],
     "menus": {
@@ -134,6 +158,11 @@
           "command": "aiAssistant.sendToAssistant",
           "when": "editorHasSelection",
           "group": "navigation"
+        },
+        {
+          "command": "aiAssistant.triggerCompletion",
+          "when": "editorTextFocus",
+          "group": "navigation"
         }
       ],
       "commandPalette": [
@@ -149,6 +178,18 @@
         {
           "command": "aiAssistant.sendToAssistant",
           "when": "editorHasSelection"
+        },
+        {
+          "command": "aiAssistant.acceptCompletion"
+        },
+        {
+          "command": "aiAssistant.rejectCompletion"
+        },
+        {
+          "command": "aiAssistant.triggerCompletion"
+        },
+        {
+          "command": "aiAssistant.toggleCompletion"
         }
       ]
     },
@@ -191,8 +232,8 @@
         },
         "aiAssistant.defaultModel": {
           "type": "string",
-          "default": "llama2",
-          "description": "Default model to use"
+          "default": "qwen2.5-coder:1.5b",
+          "description": "Default model to use for chat and completion"
         },
         "aiAssistant.enableDataCollection": {
           "type": "boolean",
@@ -203,15 +244,56 @@
           "type": "number",
           "default": 50,
           "description": "Maximum number of context files to include"
+        },
+        "aiAssistant.enableCodeCompletion": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable AI-powered code completion"
+        },
+        "aiAssistant.completionDelay": {
+          "type": "number",
+          "default": 500,
+          "description": "Delay in milliseconds before triggering completion"
+        },
+        "aiAssistant.completionMaxLength": {
+          "type": "number",
+          "default": 200,
+          "description": "Maximum length of completion suggestions"
+        },
+        "aiAssistant.completionContextLength": {
+          "type": "number",
+          "default": 500,
+          "description": "Number of characters to include as context for completion"
         }
       }
     },
     "keybindings": [
       {
-        "command": "vscode-plugin.sendToAssistant",
+        "command": "aiAssistant.sendToAssistant",
         "key": "ctrl+shift+a",
         "mac": "cmd+shift+a",
         "when": "editorHasSelection"
+      },
+      {
+        "command": "aiAssistant.acceptCompletion",
+        "key": "tab",
+        "when": "editorTextFocus && aiAssistant.hasActiveCompletion && !suggestWidgetVisible && !parameterHintsVisible && !inlineSuggestionVisible"
+      },
+      {
+        "command": "aiAssistant.rejectCompletion",
+        "key": "escape",
+        "when": "editorTextFocus && aiAssistant.hasActiveCompletion"
+      },
+      {
+        "command": "aiAssistant.triggerCompletion",
+        "key": "ctrl+space",
+        "mac": "cmd+space",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "aiAssistant.toggleCompletion",
+        "key": "ctrl+alt+c",
+        "mac": "cmd+alt+c"
       }
     ]
   },

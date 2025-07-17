@@ -18,7 +18,7 @@ export class OllamaService {
 
     constructor() {
         this.baseUrl = this.getOllamaUrl();
-        
+
         // 监听配置变化
         vscode.workspace.onDidChangeConfiguration(e => {
             if (e.affectsConfiguration('aiAssistant.ollamaUrl')) {
@@ -38,7 +38,7 @@ export class OllamaService {
     public async getModels(): Promise<string[]> {
         try {
             const response = await fetch(`${this.baseUrl}/api/tags`);
-            
+
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
@@ -47,7 +47,7 @@ export class OllamaService {
             return data.models?.map((model: OllamaModel) => model.name) || [];
         } catch (error) {
             console.error('Error fetching Ollama models:', error);
-            const defaultModel = vscode.workspace.getConfiguration('aiAssistant').get('defaultModel', 'llama2');
+            const defaultModel = vscode.workspace.getConfiguration('aiAssistant').get('defaultModel', 'qwen2.5-coder:1.5b ');
             return [defaultModel];
         }
     }
@@ -121,7 +121,7 @@ export class OllamaService {
             try {
                 while (true) {
                     const { done, value } = await reader.read();
-                    
+
                     if (done) {
                         break;
                     }
@@ -197,15 +197,23 @@ export class OllamaService {
     }
 
     /**
-     * 生成简单文本（不包含会话上下文）
-     */
+    * 生成简单文本（不包含会话上下文）- 改进版本
+    */
     public async generate(model: string, prompt: string): Promise<string> {
         try {
+            // 首先检查模型是否存在
+            const availableModels = await this.getModels();
+            if (!availableModels.includes(model)) {
+                throw new Error(`Model '${model}' not found. Available models: ${availableModels.join(', ')}`);
+            }
+
             const requestBody = {
                 model: model,
                 prompt: prompt,
                 stream: false
             };
+
+            console.log(`Requesting generation from: ${this.baseUrl}/api/generate`);
 
             const response = await fetch(`${this.baseUrl}/api/generate`, {
                 method: 'POST',
@@ -216,14 +224,62 @@ export class OllamaService {
             });
 
             if (!response.ok) {
+                // 如果 generate API 不可用（404），尝试使用 chat API
+                if (response.status === 404) {
+                    console.warn('Generate API not available, falling back to chat API');
+                    return await this.generateWithChatAPI(model, prompt);
+                }
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
 
             const data = await response.json() as { response?: string };
             return data.response || 'No response received';
         } catch (error) {
+            console.error('Generate API error:', error);
+
+            // 如果是网络错误或404，尝试使用 chat API 作为备选
+            if (error instanceof Error && (error.message.includes('404') || error.message.includes('fetch'))) {
+                try {
+                    console.log('Trying chat API as fallback...');
+                    return await this.generateWithChatAPI(model, prompt);
+                } catch (chatError) {
+                    throw new Error(`Both generate and chat APIs failed. Original error: ${error.message}`);
+                }
+            }
+
             throw new Error(`Failed to generate response: ${error}`);
         }
+    }
+
+    /**
+     * 使用 chat API 作为 generate 的备选方案
+     */
+    private async generateWithChatAPI(model: string, prompt: string): Promise<string> {
+        const requestBody = {
+            model: model,
+            messages: [
+                {
+                    role: 'user',
+                    content: prompt
+                }
+            ],
+            stream: false
+        };
+
+        const response = await fetch(`${this.baseUrl}/api/chat`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(requestBody)
+        });
+
+        if (!response.ok) {
+            throw new Error(`Chat API HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const data = await response.json() as { message?: { content?: string } };
+        return data.message?.content || 'No response received';
     }
 
     /**
@@ -257,7 +313,7 @@ export class OllamaService {
 
                         const chunk = decoder.decode(value);
                         const lines = chunk.split('\n').filter(line => line.trim());
-                        
+
                         for (const line of lines) {
                             try {
                                 const data = JSON.parse(line);
