@@ -190,7 +190,7 @@ export class CodeCompletionProvider {
     }
 
     /**
-     * 从Ollama获取补全建议 - 修复版本
+     * 从Ollama获取补全建议
      */
     private async getCompletionFromOllama(context: string, ollamaService: any): Promise<string> {
         try {
@@ -225,7 +225,7 @@ ${context}
 
 Completion:`;
 
-            // 方案1: 优先使用 generate 方法，如果失败则回退到 chat 方法
+            // 优先使用 generate 方法，如果失败则回退到 chat 方法
             try {
                 const response = await ollamaService.generate(defaultModel, prompt);
                 let completion = response.trim();
