@@ -217,13 +217,16 @@ export class CodeCompletionProvider {
                 defaultModel = models[0];
             }
 
-            const prompt = `You are an AI code completion assistant. Complete the following code where <BLANK> appears. 
-Return only the code that should replace <BLANK>, without any explanations or markdown formatting.
+            const prompt = `You are a AI agent aiming to provide code completion function, 
+            your task is to complete the following code block where something is missing, 
+            below is the code block to be completed.
+            Fill in the blank to complete the code block. 
+            Your response should include only the code to replace <BLANK>, without surrounding backticks.
 
-Code context:
-${context}
+            Code context:
+            ${context}
 
-Completion:`;
+            Completion:`;
 
             // 优先使用 generate 方法，如果失败则回退到 chat 方法
             try {
