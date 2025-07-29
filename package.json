@@ -101,6 +101,21 @@
         "command": "aiAssistant.toggleCompletion",
         "title": "Toggle AI Code Completion",
         "category": "AI Assistant"
+      },
+      {
+        "command": "aiAssistant.showInlineChat",
+        "title": "Show Inline Chat",
+        "category": "AI Assistant"
+      },
+      {
+        "command": "extension.inlineChat.enter",
+        "title": "Inline Chat: Accept Input",
+        "category": "AI Assistant"
+      },
+      {
+        "command": "extension.inlineChat.escape",
+        "title": "Inline Chat: Cancel Input",
+        "category": "AI Assistant"
       }
     ],
     "menus": {
@@ -190,6 +205,9 @@
         },
         {
           "command": "aiAssistant.toggleCompletion"
+        },
+        {
+          "command": "aiAssistant.showInlineChat"
         }
       ]
     },
@@ -294,6 +312,22 @@
         "command": "aiAssistant.toggleCompletion",
         "key": "ctrl+alt+c",
         "mac": "cmd+alt+c"
+      },
+      {
+        "command": "aiAssistant.showInlineChat",
+        "key": "ctrl+i",
+        "mac": "cmd+i",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "extension.inlineChat.enter",
+        "key": "enter",
+        "when": "inlineChatActive && editorTextFocus"
+      },
+      {
+        "command": "extension.inlineChat.escape",
+        "key": "escape",
+        "when": "inlineChatActive && editorTextFocus"
       }
     ]
   },

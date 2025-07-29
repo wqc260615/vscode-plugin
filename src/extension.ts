@@ -5,6 +5,7 @@ import { SessionManager } from './services/sessionManager';
 import { ProjectContextProcessor } from './services/projectContextProcessor';
 import { OllamaService } from './services/ollamaService';
 import { CompletionManager } from './services/completion/CompletionManager';
+import { InlineChatProvider } from './services/InlineChatProvider';
 
 export function activate(context: vscode.ExtensionContext) {
     console.log('AI Assistant extension is now active!');
@@ -20,6 +21,9 @@ export function activate(context: vscode.ExtensionContext) {
     // 初始化代码补全功能
     const completionManager = new CompletionManager(ollamaService);
     completionManager.initialize(context);
+
+    // 初始化inline chat功能
+    const inlineChatProvider = new InlineChatProvider(ollamaService, contextProcessor);
 
     // 创建树视图提供者
     const sessionsTreeProvider = new SessionsTreeProvider(sessionManager);
@@ -50,6 +54,12 @@ export function activate(context: vscode.ExtensionContext) {
         contextTreeProvider
     );
     commandsManager.registerCommands(context);
+
+    // 注册inline chat命令
+    const inlineChatCommand = vscode.commands.registerCommand('aiAssistant.showInlineChat', () => {
+        inlineChatProvider.showInlineChat();
+    });
+    context.subscriptions.push(inlineChatCommand);
 
     // 注册工作区变化监听器
     const workspaceWatcher = vscode.workspace.onDidChangeWorkspaceFolders(async () => {
