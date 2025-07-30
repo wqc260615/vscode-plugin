@@ -39,34 +39,45 @@ export class CodeCompletionProvider {
         const position = editor.selection.active;
         const range = new vscode.Range(position, position);
 
-        // 处理多行补全
-        const lines = completion.split('\n');
-        let displayText = lines[0];
-
-        // 如果有多行，显示第一行并添加省略号
-        if (lines.length > 1) {
-            displayText += ' ...';
-        }
-
         this.currentSuggestion = {
             text: completion,
             insertText: completion,
             range: range
         };
 
-        // 设置装饰
-        const decoration: vscode.DecorationOptions = {
-            range: range,
-            renderOptions: {
-                after: {
-                    contentText: displayText,
-                    color: new vscode.ThemeColor('editorGhostText.foreground'),
-                    fontStyle: 'italic'
-                }
-            }
-        };
+        // 创建多行预览装饰
+        this.createMultiLinePreview(editor, completion, position);
+    }
 
-        editor.setDecorations(this.suggestionDecorationType, [decoration]);
+    /**
+     * 创建多行预览装饰
+     */
+    private createMultiLinePreview(editor: vscode.TextEditor, completion: string, startPosition: vscode.Position) {
+        const lines = completion.split('\n');
+        const decorations: vscode.DecorationOptions[] = [];
+
+        lines.forEach((line, index) => {
+            const linePosition = new vscode.Position(startPosition.line + index, 
+                index === 0 ? startPosition.character : 0);
+            const range = new vscode.Range(linePosition, linePosition);
+
+            // 对于第一行，显示在光标位置后
+            // 对于后续行，显示在行的开始位置
+            const decoration: vscode.DecorationOptions = {
+                range: range,
+                renderOptions: {
+                    after: {
+                        contentText: line,
+                        color: new vscode.ThemeColor('editorGhostText.foreground'),
+                        fontStyle: 'italic'
+                    }
+                }
+            };
+
+            decorations.push(decoration);
+        });
+
+        editor.setDecorations(this.suggestionDecorationType, decorations);
 
         // 通知状态变化
         if (this.onCompletionStateChanged) {
@@ -131,6 +142,8 @@ export class CodeCompletionProvider {
         // 清除之前的定时器
         if (this.completionTimeout) {
             clearTimeout(this.completionTimeout);
+
+
         }
 
         // 设置防抖延迟
@@ -146,7 +159,8 @@ export class CodeCompletionProvider {
         try {
             this.isGenerating = true;
 
-            const context = this.getCodeContext(editor);
+            // 增加上下文字符数以获取更多信息
+            const context = this.getCodeContext(editor, 1500);
             if (!context || context.trim().length === 0) {
                 return;
             }
@@ -165,27 +179,51 @@ export class CodeCompletionProvider {
     /**
      * 获取代码上下文
      */
-    private getCodeContext(editor: vscode.TextEditor, contextChars: number = 500): string {
+    private getCodeContext(editor: vscode.TextEditor, contextChars: number = 1500): string {
         const document = editor.document;
         const position = editor.selection.active;
+        
+        // 计算前后文本的分配比例 (60% 前文，40% 后文)
+        const beforeChars = Math.floor(contextChars * 0.6);
+        const afterChars = contextChars - beforeChars;
 
-        // 获取当前位置前的文本作为上下文
-        const startPosition = new vscode.Position(
-            Math.max(0, position.line - 10),
-            0
-        );
+        // 获取光标前的文本
+        const startPosition = new vscode.Position(0, 0);
+        const beforeRange = new vscode.Range(startPosition, position);
+        let beforeText = document.getText(beforeRange);
 
-        const contextRange = new vscode.Range(startPosition, position);
-        let context = document.getText(contextRange);
-
-        // 限制上下文长度
-        if (context.length > contextChars) {
-            context = context.substring(context.length - contextChars);
+        // 如果前文太长，截取最后部分
+        if (beforeText.length > beforeChars) {
+            beforeText = beforeText.substring(beforeText.length - beforeChars);
+            
+            // 确保不会在单词中间截断，找到第一个完整的行
+            const firstNewlineIndex = beforeText.indexOf('\n');
+            if (firstNewlineIndex > 0) {
+                beforeText = beforeText.substring(firstNewlineIndex + 1);
+            }
         }
 
-        // 在光标位置添加占位符
-        context += '<BLANK>';
+        // 获取光标后的文本
+        const endPosition = new vscode.Position(document.lineCount - 1, document.lineAt(document.lineCount - 1).text.length);
+        const afterRange = new vscode.Range(position, endPosition);
+        let afterText = document.getText(afterRange);
 
+        // 如果后文太长，截取前面部分
+        if (afterText.length > afterChars) {
+            afterText = afterText.substring(0, afterChars);
+            
+            // 确保不会在单词中间截断，找到最后一个完整的行
+            const lastNewlineIndex = afterText.lastIndexOf('\n');
+            if (lastNewlineIndex > 0 && lastNewlineIndex < afterText.length - 1) {
+                afterText = afterText.substring(0, lastNewlineIndex + 1);
+            }
+        }
+
+        // 构建完整的上下文，在光标位置插入 <BLANK>
+        const context = beforeText + '<BLANK>' + afterText;
+
+        console.log(`Context length: ${context.length} (before: ${beforeText.length}, after: ${afterText.length})`);
+        
         return context;
     }
 
@@ -194,12 +232,13 @@ export class CodeCompletionProvider {
      */
     private async getCompletionFromOllama(context: string, ollamaService: any): Promise<string> {
         try {
+            
             // 检查Ollama服务是否可用
             const isAvailable = await ollamaService.isServiceAvailable();
             if (!isAvailable) {
                 return '';
             }
-
+            console.log("context:"+context);
             // 获取可用模型列表
             const models = await ollamaService.getModels();
             if (!models || models.length === 0) {
