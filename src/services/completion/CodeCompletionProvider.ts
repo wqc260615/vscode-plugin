@@ -209,11 +209,13 @@ export class CodeCompletionProvider {
 
             // 获取配置中的模型，如果不存在则使用第一个可用模型
             const config = vscode.workspace.getConfiguration('aiAssistant');
-            let defaultModel = config.get('defaultModel', 'llama2');
+            let defaultModel = config.get('defaultModel', '');
 
-            // 检查配置的模型是否在可用模型列表中
-            if (!models.includes(defaultModel)) {
-                console.warn(`Model ${defaultModel} not found, using ${models[0]} instead`);
+            // 如果没有配置默认模型或配置的模型不在可用列表中，使用第一个可用模型
+            if (!defaultModel || !models.includes(defaultModel)) {
+                if (defaultModel) {
+                    console.warn(`Model ${defaultModel} not found, using ${models[0]} instead`);
+                }
                 defaultModel = models[0];
             }
 

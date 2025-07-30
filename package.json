@@ -250,8 +250,8 @@
         },
         "aiAssistant.defaultModel": {
           "type": "string",
-          "default": "qwen2.5-coder:1.5b",
-          "description": "Default model to use for chat and completion"
+          "default": "",
+          "description": "Default Ollama model to use (leave empty to auto-select first available model)"
         },
         "aiAssistant.enableDataCollection": {
           "type": "boolean",

@@ -47,8 +47,7 @@ export class OllamaService {
             return data.models?.map((model: OllamaModel) => model.name) || [];
         } catch (error) {
             console.error('Error fetching Ollama models:', error);
-            const defaultModel = vscode.workspace.getConfiguration('aiAssistant').get('defaultModel', 'qwen2.5-coder:1.5b ');
-            return [defaultModel];
+            return [];
         }
     }
 
