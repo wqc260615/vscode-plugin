@@ -302,317 +302,151 @@ export class InlineChatProvider {
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <title>AI Inline Chat</title>
             <style>
-                * {
-                    box-sizing: border-box;
-                }
-                
                 body {
                     font-family: var(--vscode-font-family);
                     font-size: var(--vscode-font-size);
                     color: var(--vscode-foreground);
-                    background-color: var(--vscode-editor-background);
+                    background: var(--vscode-editor-background);
                     margin: 0;
-                    padding: 12px;
-                    min-height: 100vh;
-                    display: flex;
-                    flex-direction: column;
+                    padding: 0;
                 }
-                
                 .container {
-                    max-width: 500px;
-                    width: 100%;
+                    padding: 18px 24px 16px 24px;
+                    max-width: 540px;
                     margin: 0 auto;
-                    flex: 1;
-                    display: flex;
-                    flex-direction: column;
                 }
-                
                 .header {
                     display: flex;
                     align-items: center;
-                    margin-bottom: 16px;
-                    padding-bottom: 12px;
-                    border-bottom: 1px solid var(--vscode-panel-border);
+                    font-weight: bold;
+                    font-size: 16px;
+                    margin-bottom: 10px;
                 }
-                
-                .icon {
-                    margin-right: 10px;
+                .header .icon {
+                    margin-right: 8px;
                     font-size: 18px;
                 }
-                
-                .title {
-                    font-weight: 600;
-                    font-size: 16px;
-                    color: var(--vscode-textPreformat-foreground);
+                .info {
+                    font-size: 12px;
+                    color: var(--vscode-descriptionForeground);
+                    margin-bottom: 10px;
                 }
-                
-                .input-section {
-                    flex: 1;
-                    display: flex;
-                    flex-direction: column;
-                    gap: 12px;
-                }
-                
-                .input-container {
-                    position: relative;
-                    flex: 1;
-                    min-height: 120px;
-                }
-                
-                #userInput {
+                textarea {
                     width: 100%;
-                    min-height: 120px;
-                    padding: 12px 16px;
-                    border: 2px solid var(--vscode-input-border);
-                    background-color: var(--vscode-input-background);
-                    color: var(--vscode-input-foreground);
-                    border-radius: 6px;
-                    font-family: var(--vscode-font-family);
-                    font-size: var(--vscode-font-size);
-                    outline: none;
+                    min-height: 80px;
+                    max-height: 200px;
                     resize: vertical;
-                    transition: border-color 0.2s ease;
+                    font-family: inherit;
+                    font-size: 14px;
+                    padding: 10px;
+                    border: 1.5px solid var(--vscode-input-border);
+                    background: var(--vscode-input-background);
+                    color: var(--vscode-input-foreground);
+                    border-radius: 5px;
+                    outline: none;
+                    transition: border-color 0.2s;
                 }
-                
-                #userInput:focus {
+                textarea:focus {
                     border-color: var(--vscode-focusBorder);
-                    box-shadow: 0 0 0 1px var(--vscode-focusBorder);
                 }
-                
-                #userInput::placeholder {
-                    color: var(--vscode-input-placeholderForeground);
-                }
-                
                 .actions {
                     display: flex;
-                    gap: 10px;
                     justify-content: flex-end;
-                    align-items: center;
-                    padding-top: 12px;
-                    border-top: 1px solid var(--vscode-panel-border);
+                    gap: 10px;
+                    margin-top: 12px;
                 }
-                
                 .btn {
-                    padding: 8px 16px;
-                    border: 1px solid transparent;
+                    padding: 7px 18px;
                     border-radius: 4px;
-                    cursor: pointer;
-                    font-family: var(--vscode-font-family);
+                    border: none;
                     font-size: 13px;
-                    font-weight: 500;
-                    transition: all 0.2s ease;
-                    min-width: 80px;
-                    text-align: center;
+                    font-family: inherit;
+                    cursor: pointer;
+                    transition: background 0.2s;
                 }
-                
-                .btn:disabled {
+                .btn-primary {
+                    background: var(--vscode-button-background);
+                    color: var(--vscode-button-foreground);
+                }
+                .btn-primary:disabled {
                     opacity: 0.6;
                     cursor: not-allowed;
                 }
-                
-                .btn-primary {
-                    background-color: var(--vscode-button-background);
-                    color: var(--vscode-button-foreground);
-                    border-color: var(--vscode-button-background);
-                }
-                
                 .btn-primary:hover:not(:disabled) {
-                    background-color: var(--vscode-button-hoverBackground);
+                    background: var(--vscode-button-hoverBackground);
                 }
-                
                 .btn-secondary {
-                    background-color: var(--vscode-button-secondaryBackground);
+                    background: var(--vscode-button-secondaryBackground);
                     color: var(--vscode-button-secondaryForeground);
-                    border-color: var(--vscode-button-secondaryBackground);
                 }
-                
-                .btn-secondary:hover:not(:disabled) {
-                    background-color: var(--vscode-button-secondaryHoverBackground);
+                .btn-secondary:hover {
+                    background: var(--vscode-button-secondaryHoverBackground);
                 }
-                
-                .info-panel {
-                    background-color: var(--vscode-textBlockQuote-background);
-                    border: 1px solid var(--vscode-textBlockQuote-border);
-                    border-radius: 4px;
-                    padding: 12px;
-                    margin-bottom: 16px;
-                }
-                
-                .info-row {
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    margin-bottom: 6px;
-                    font-size: 12px;
-                }
-                
-                .info-row:last-child {
-                    margin-bottom: 0;
-                }
-                
-                .info-label {
-                    color: var(--vscode-descriptionForeground);
-                    font-weight: 500;
-                }
-                
-                .info-value {
-                    color: var(--vscode-textPreformat-foreground);
-                    font-family: var(--vscode-editor-font-family);
-                }
-                
                 .shortcuts {
                     font-size: 11px;
                     color: var(--vscode-descriptionForeground);
-                    text-align: center;
                     margin-top: 8px;
-                    padding-top: 8px;
-                    border-top: 1px solid var(--vscode-panel-border);
-                }
-                
-                .character-count {
-                    font-size: 11px;
-                    color: var(--vscode-descriptionForeground);
                     text-align: right;
-                }
-                
-                @keyframes pulse {
-                    0% { opacity: 1; }
-                    50% { opacity: 0.5; }
-                    100% { opacity: 1; }
-                }
-                
-                .generating {
-                    animation: pulse 1.5s infinite;
                 }
             </style>
         </head>
         <body>
             <div class="container">
                 <div class="header">
-                    <span class="icon">🤖</span>
-                    <span class="title">AI Inline Chat</span>
+                    <span class="icon">💬</span>
+                    AI Inline Chat
                 </div>
-                
-                <div class="info-panel">
-                    <div class="info-row">
-                        <span class="info-label">Model:</span>
-                        <span class="info-value">${model}</span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">Context:</span>
-                        <span class="info-value">${context.split('\n').length} lines</span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">Position:</span>
-                        <span class="info-value">Cursor location</span>
-                    </div>
+                <div class="info">
+                    <div>Model: <b>${model}</b></div>
+                    <div>Context: <b>${context.split('\\n').length} lines</b></div>
                 </div>
-                
-                <div class="input-section">
-                    <div class="input-container">
-                        <textarea 
-                            id="userInput" 
-                            placeholder="Describe what code you want to generate at the cursor position...
-                            
-Examples:
-• Create a function to calculate fibonacci numbers
-• Add error handling for this API call
-• Generate a TypeScript interface for user data
-• Write a loop to process this array"
-                            autofocus
-                        ></textarea>
-                        <div class="character-count" id="charCount">0 characters</div>
-                    </div>
-                </div>
-                
+                <textarea id="userInput" placeholder="Describe what you want to generate..."></textarea>
                 <div class="actions">
                     <button class="btn btn-secondary" id="cancelBtn">Cancel</button>
-                    <button class="btn btn-primary" id="generateBtn" disabled>Generate Code</button>
+                    <button class="btn btn-primary" id="generateBtn" disabled>Generate</button>
                 </div>
-                
                 <div class="shortcuts">
-                    <strong>Keyboard shortcuts:</strong> Ctrl+Enter to generate • Escape to cancel
+                    Ctrl+Enter: Generate &nbsp;|&nbsp; Esc: Cancel
                 </div>
             </div>
-
             <script>
                 const vscode = acquireVsCodeApi();
                 const input = document.getElementById('userInput');
                 const generateBtn = document.getElementById('generateBtn');
                 const cancelBtn = document.getElementById('cancelBtn');
-                const charCount = document.getElementById('charCount');
 
-                // 通知WebView已准备好
-                vscode.postMessage({ command: 'ready' });
-
-                // 聚焦输入框
                 input.focus();
 
-                // 输入事件
                 input.addEventListener('input', () => {
                     const text = input.value.trim();
-                    const length = input.value.length;
-                    
-                    // 更新字符计数
-                    charCount.textContent = length + ' characters';
-                    
-                    // 更新按钮状态
                     generateBtn.disabled = !text;
-                    
-                    // 通知VS Code
-                    vscode.postMessage({
-                        command: 'input',
-                        text: text
-                    });
+                    vscode.postMessage({ command: 'input', text });
                 });
 
-                // 按键事件
                 input.addEventListener('keydown', (e) => {
-                    if (e.ctrlKey && e.key === 'Enter') {
+                    if (e.key === 'Enter' && e.ctrlKey) {
                         e.preventDefault();
-                        generate();
+                        if (!generateBtn.disabled) generate();
                     } else if (e.key === 'Escape') {
                         e.preventDefault();
                         cancel();
                     }
                 });
 
-                // 生成按钮
                 generateBtn.addEventListener('click', generate);
-
-                // 取消按钮
                 cancelBtn.addEventListener('click', cancel);
-
-                // 监听来自VS Code的消息
-                window.addEventListener('message', event => {
-                    const message = event.data;
-                    switch (message.command) {
-                        case 'focus':
-                            input.focus();
-                            break;
-                    }
-                });
 
                 function generate() {
                     const text = input.value.trim();
                     if (text) {
-                        // 显示生成状态
                         generateBtn.disabled = true;
                         generateBtn.textContent = 'Generating...';
-                        generateBtn.classList.add('generating');
                         input.disabled = true;
-                        
-                        vscode.postMessage({
-                            command: 'generate',
-                            text: text
-                        });
+                        vscode.postMessage({ command: 'generate', text });
                     }
                 }
-
                 function cancel() {
-                    vscode.postMessage({
-                        command: 'cancel'
-                    });
+                    vscode.postMessage({ command: 'cancel' });
                 }
             </script>
         </body>

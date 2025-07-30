@@ -219,18 +219,16 @@ export class CodeCompletionProvider {
 
             const prompt = `You are a AI agent aiming to provide code completion function, 
             your task is to complete the following code block where something is missing, 
-            below is the code block to be completed.
+            below is the code block to be completed.${context}
             Fill in the blank to complete the code block. 
             Your response should include only the code to replace <BLANK>, without surrounding backticks.
-
-            Code context:
-            ${context}
-
-            Completion:`;
+            ,include the response code block in \`\`\` tags.
+            `;
 
             // 优先使用 generate 方法，如果失败则回退到 chat 方法
             try {
                 const response = await ollamaService.generate(defaultModel, prompt);
+                console.log('Generate API response:', response);
                 let completion = response.trim();
                 completion = completion.replace(/^```[\w]*\n?/, '');
                 completion = completion.replace(/\n?```$/, '');
