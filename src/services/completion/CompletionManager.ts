@@ -11,7 +11,7 @@ export class CompletionManager {
 
     constructor(ollamaService: OllamaService) {
         this.ollamaService = ollamaService;
-        this.completionProvider = new CodeCompletionProvider();
+        this.completionProvider = new CodeCompletionProvider(ollamaService);
 
         // 监听补全状态变化
         this.completionProvider.onCompletionStateChanged = (hasCompletion: boolean) => {
@@ -47,35 +47,12 @@ export class CompletionManager {
      * 注册相关命令
      */
     private registerCommands(context: vscode.ExtensionContext) {
-        // 接受补全建议
-        const acceptCommand = vscode.commands.registerCommand('aiAssistant.acceptCompletion', async () => {
-            const editor = vscode.window.activeTextEditor;
-            if (editor && this.completionProvider.hasActiveCompletion()) {
-                const accepted = await this.completionProvider.acceptCompletion(editor);
-                if (accepted) {
-                    this.updateCompletionContext(false);
-                    return; // 成功接受补全，不执行默认Tab行为
-                }
-            }
-
-            // 如果没有补全可接受，执行默认的Tab行为
-            await vscode.commands.executeCommand('tab');
-        });
-
-        // 拒绝补全建议
-        const rejectCommand = vscode.commands.registerCommand('aiAssistant.rejectCompletion', () => {
-            const editor = vscode.window.activeTextEditor;
-            if (editor) {
-                this.completionProvider.clearCompletion(editor);
-                this.updateCompletionContext(false);
-            }
-        });
-
         // 手动触发补全
         const triggerCommand = vscode.commands.registerCommand('aiAssistant.triggerCompletion', async () => {
             const editor = vscode.window.activeTextEditor;
             if (editor) {
-                await this.completionProvider.requestCompletion(editor, this.ollamaService);
+                // 触发 VS Code 的内置 inline completion
+                await vscode.commands.executeCommand('editor.action.inlineSuggest.trigger');
             }
         });
 
@@ -85,21 +62,12 @@ export class CompletionManager {
             const enabled = config.get('enableCodeCompletion', true);
             config.update('enableCodeCompletion', !enabled, vscode.ConfigurationTarget.Global);
 
-            if (!enabled) {
-                // 如果启用补全，清除现有补全
-                const editor = vscode.window.activeTextEditor;
-                if (editor) {
-                    this.completionProvider.clearCompletion(editor);
-                    this.updateCompletionContext(false);
-                }
-            }
-
             vscode.window.showInformationMessage(
                 `AI Code Completion ${!enabled ? 'enabled' : 'disabled'}`
             );
         });
 
-        this.disposables.push(acceptCommand, rejectCommand, triggerCommand, toggleCommand);
+        this.disposables.push(triggerCommand, toggleCommand);
     }
 
     /**
@@ -156,46 +124,22 @@ export class CompletionManager {
         // 文档变化监听器
         const documentChangeListener = vscode.workspace.onDidChangeTextDocument(event => {
             if (event.document === document) {
-                this.completionProvider.onDocumentChange(editor, event);
-                this.updateCompletionContext(false); // 文档变化时清除补全状态
-
-                // 如果是用户输入（而不是撤销/重做），触发新的补全请求
-                if (event.contentChanges.length > 0) {
-                    const change = event.contentChanges[0];
-                    // 只在插入文本且不是大量文本时触发
-                    if (change.text.length > 0 && change.text.length < 50) {
-                        this.scheduleCompletion(editor);
-                    }
-                }
+                // 文档变化时，VS Code 会自动重新触发 inline completion
+                // 我们只需要记录日志
+                console.log('Document changed, VS Code will handle inline completion automatically');
             }
         });
 
         // 光标位置变化监听器
         const selectionChangeListener = vscode.window.onDidChangeTextEditorSelection(event => {
             if (event.textEditor === editor) {
-                this.completionProvider.onCursorChange(editor);
-                this.updateCompletionContext(false); // 光标移动时清除补全状态
+                // 光标移动时，VS Code 会自动隐藏 inline completion
+                console.log('Selection changed, VS Code will handle inline completion automatically');
             }
         });
 
         this.documentChangeListeners.set(documentUri, documentChangeListener);
         this.selectionChangeListeners.set(documentUri, selectionChangeListener);
-    }
-
-    /**
-     * 延迟触发补全请求
-     */
-    private scheduleCompletion(editor: vscode.TextEditor) {
-        // 延迟执行，避免在快速输入时频繁请求
-        setTimeout(() => {
-            if (!editor.document.isClosed) {
-                this.completionProvider.requestCompletion(editor, this.ollamaService)
-                    .then(() => {
-                        // 补全请求完成后更新上下文
-                        this.updateCompletionContext(this.completionProvider.hasActiveCompletion());
-                    });
-            }
-        }, 100);
     }
 
     /**
@@ -244,6 +188,13 @@ export class CompletionManager {
         ];
 
         return supportedLanguages.includes(languageId);
+    }
+
+    /**
+     * 获取补全提供程序实例
+     */
+    public getCompletionProvider(): CodeCompletionProvider {
+        return this.completionProvider;
     }
 
     /**

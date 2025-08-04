@@ -7,97 +7,146 @@ export interface CompletionSuggestion {
     range: vscode.Range;
 }
 
-export class CodeCompletionProvider {
+export class CodeCompletionProvider implements vscode.InlineCompletionItemProvider {
     private currentSuggestion: CompletionSuggestion | null = null;
-    private suggestionDecorationType: vscode.TextEditorDecorationType;
     private completionTimeout: NodeJS.Timeout | null = null;
     private isGenerating: boolean = false;
+    private ollamaService: any;
 
     // 添加状态变化回调
     public onCompletionStateChanged: ((hasCompletion: boolean) => void) | null = null;
 
-    constructor() {
-        // 创建装饰类型，用于显示灰色预览文本
-        this.suggestionDecorationType = vscode.window.createTextEditorDecorationType({
-            after: {
-                color: new vscode.ThemeColor('editorGhostText.foreground'),
-                fontStyle: 'italic'
-            }
-        });
+    constructor(ollamaService: any) {
+        this.ollamaService = ollamaService;
     }
 
     /**
-     * 显示代码补全预览
+     * 实现 InlineCompletionItemProvider 接口
+     */
+    async provideInlineCompletionItems(
+        document: vscode.TextDocument,
+        position: vscode.Position,
+        context: vscode.InlineCompletionContext,
+        token: vscode.CancellationToken
+    ): Promise<vscode.InlineCompletionItem[] | vscode.InlineCompletionList | null> {
+        
+        // 检查是否启用了代码补全
+        const config = vscode.workspace.getConfiguration('aiAssistant');
+        if (!config.get('enableCodeCompletion', true)) {
+            return null;
+        }
+
+        // 如果正在生成，返回空
+        if (this.isGenerating) {
+            return null;
+        }
+
+        try {
+            this.isGenerating = true;
+
+            // 获取代码上下文
+            const codeContext = this.getCodeContext(document, position, 1500);
+            if (!codeContext || codeContext.trim().length === 0) {
+                return null;
+            }
+
+            // 从 Ollama 获取补全
+            const completion = await this.getCompletionFromOllama(codeContext, this.ollamaService);
+            if (!completion || completion.trim().length === 0) {
+                return null;
+            }
+
+            // 创建 InlineCompletionItem
+            const item = new vscode.InlineCompletionItem(
+                completion,
+                new vscode.Range(position, position)
+            );
+
+            // 设置补全项的标签
+            item.filterText = completion;
+
+            return [item];
+        } catch (error) {
+            return null;
+        } finally {
+            this.isGenerating = false;
+        }
+    }
+
+    /**
+     * 检查是否为支持的编程语言
+     */
+    private isSupportedLanguage(languageId: string): boolean {
+        const supportedLanguages = [
+            'javascript',
+            'typescript',
+            'python',
+            'java',
+            'cpp',
+            'c',
+            'csharp',
+            'php',
+            'ruby',
+            'go',
+            'rust',
+            'swift',
+            'kotlin',
+            'json',
+            'html',
+            'css',
+            'scss',
+            'less',
+            'xml',
+            'yaml',
+            'sql'
+        ];
+
+        return supportedLanguages.includes(languageId);
+    }
+
+    /**
+     * 清理补全文本，移除多余的空行和格式问题
+     */
+    private cleanCompletionText(text: string): string {
+        // 首先trim整个文本
+        let cleaned = text.trim();
+        
+        // 移除可能的markdown代码块标记
+        cleaned = cleaned.replace(/^```[\w]*\n?/, '');
+        cleaned = cleaned.replace(/\n?```$/, '');
+        
+        // 移除开头的多余空行和只包含空白字符的行
+        cleaned = cleaned.replace(/^[\s\n]*\n/, '');
+        
+        // 移除结尾的多余空行
+        cleaned = cleaned.replace(/\n+\s*$/, '');
+        
+        // 移除连续的空行，最多保留一个空行
+        cleaned = cleaned.replace(/\n\s*\n\s*\n/g, '\n\n');
+        
+        // 如果文本开头有空白字符但不是缩进，移除它们
+        const lines = cleaned.split('\n');
+        if (lines.length > 0 && lines[0].match(/^\s+$/)) {
+            lines.shift(); // 移除第一行如果它只包含空白
+            cleaned = lines.join('\n');
+        }
+        
+        // 确保不会返回空字符串
+        return cleaned || '';
+    }
+
+    /**
+     * 显示代码补全预览 (已弃用，现在使用 InlineCompletionProvider)
      */
     public showCompletion(editor: vscode.TextEditor, completion: string) {
-        this.clearCompletion(editor);
-
-        if (!completion || completion.trim().length === 0) {
-            return;
-        }
-
-        const position = editor.selection.active;
-        const range = new vscode.Range(position, position);
-
-        this.currentSuggestion = {
-            text: completion,
-            insertText: completion,
-            range: range
-        };
-
-        // 创建多行预览装饰
-        this.createMultiLinePreview(editor, completion, position);
+        // 这个方法保留是为了向后兼容，实际补全现在通过 provideInlineCompletionItems 处理
     }
 
     /**
-     * 创建多行预览装饰
-     */
-    private createMultiLinePreview(editor: vscode.TextEditor, completion: string, startPosition: vscode.Position) {
-        const lines = completion.split('\n');
-        const decorations: vscode.DecorationOptions[] = [];
-
-        lines.forEach((line, index) => {
-            const linePosition = new vscode.Position(startPosition.line + index, 
-                index === 0 ? startPosition.character : 0);
-            const range = new vscode.Range(linePosition, linePosition);
-
-            // 对于第一行，显示在光标位置后
-            // 对于后续行，显示在行的开始位置
-            const decoration: vscode.DecorationOptions = {
-                range: range,
-                renderOptions: {
-                    after: {
-                        contentText: line,
-                        color: new vscode.ThemeColor('editorGhostText.foreground'),
-                        fontStyle: 'italic'
-                    }
-                }
-            };
-
-            decorations.push(decoration);
-        });
-
-        editor.setDecorations(this.suggestionDecorationType, decorations);
-
-        // 通知状态变化
-        if (this.onCompletionStateChanged) {
-            this.onCompletionStateChanged(true);
-        }
-    }
-
-    /**
-     * 清除当前的补全预览
+     * 清除当前的补全预览 (已弃用)
      */
     public clearCompletion(editor: vscode.TextEditor) {
-        if (this.currentSuggestion) {
-            editor.setDecorations(this.suggestionDecorationType, []);
-            this.currentSuggestion = null;
-
-            // 通知状态变化
-            if (this.onCompletionStateChanged) {
-                this.onCompletionStateChanged(false);
-            }
-        }
+        // 现在由 VS Code 的 InlineCompletionProvider 自动处理
     }
 
     /**
@@ -118,7 +167,6 @@ export class CodeCompletionProvider {
             });
             return true;
         } catch (error) {
-            console.error('Error accepting completion:', error);
             return false;
         }
     }
@@ -160,7 +208,7 @@ export class CodeCompletionProvider {
             this.isGenerating = true;
 
             // 增加上下文字符数以获取更多信息
-            const context = this.getCodeContext(editor, 1500);
+            const context = this.getCodeContext(editor.document, editor.selection.active, 1500);
             if (!context || context.trim().length === 0) {
                 return;
             }
@@ -170,7 +218,7 @@ export class CodeCompletionProvider {
                 this.showCompletion(editor, completion);
             }
         } catch (error) {
-            console.error('Code completion error:', error);
+            // Error handling silently
         } finally {
             this.isGenerating = false;
         }
@@ -179,10 +227,7 @@ export class CodeCompletionProvider {
     /**
      * 获取代码上下文
      */
-    private getCodeContext(editor: vscode.TextEditor, contextChars: number = 1500): string {
-        const document = editor.document;
-        const position = editor.selection.active;
-        
+    private getCodeContext(document: vscode.TextDocument, position: vscode.Position, contextChars: number = 1500): string {
         // 计算前后文本的分配比例 (60% 前文，40% 后文)
         const beforeChars = Math.floor(contextChars * 0.6);
         const afterChars = contextChars - beforeChars;
@@ -221,8 +266,6 @@ export class CodeCompletionProvider {
 
         // 构建完整的上下文，在光标位置插入 <BLANK>
         const context = beforeText + '<BLANK>' + afterText;
-
-        console.log(`Context length: ${context.length} (before: ${beforeText.length}, after: ${afterText.length})`);
         
         return context;
     }
@@ -238,11 +281,10 @@ export class CodeCompletionProvider {
             if (!isAvailable) {
                 return '';
             }
-            console.log("context:"+context);
+            
             // 获取可用模型列表
             const models = await ollamaService.getModels();
             if (!models || models.length === 0) {
-                console.error('No models available in Ollama');
                 return '';
             }
 
@@ -252,31 +294,38 @@ export class CodeCompletionProvider {
 
             // 如果没有配置默认模型或配置的模型不在可用列表中，使用第一个可用模型
             if (!defaultModel || !models.includes(defaultModel)) {
-                if (defaultModel) {
-                    console.warn(`Model ${defaultModel} not found, using ${models[0]} instead`);
-                }
                 defaultModel = models[0];
             }
 
-            const prompt = `You are a AI agent aiming to provide code completion function, 
-            your task is to complete the following code block where something is missing, 
-            below is the code block to be completed.${context}
-            Fill in the blank to complete the code block. 
-            Your response should include only the code to replace <BLANK>, without surrounding backticks.
-            ,include the response code block in \`\`\` tags.
-            `;
+            const prompt = `You are an AI code completion assistant. Your task is to complete the code at the <BLANK> position.
+
+IMPORTANT RULES:
+1. Only provide the code that should replace <BLANK>
+2. Do NOT include any leading empty lines or whitespace before the code
+3. Do NOT include any trailing empty lines after the code
+4. Do NOT wrap the response in markdown code blocks
+5. Start immediately with the actual code content
+6. Keep the completion concise and contextually appropriate
+
+Code context:
+${context}
+
+Complete the code at <BLANK>:`;
 
             // 优先使用 generate 方法，如果失败则回退到 chat 方法
             try {
                 const response = await ollamaService.generate(defaultModel, prompt);
-                console.log('Generate API response:', response);
                 let completion = response.trim();
+                
+                // 清理响应，移除可能的代码块标记
                 completion = completion.replace(/^```[\w]*\n?/, '');
                 completion = completion.replace(/\n?```$/, '');
+                
+                // 清理并格式化补全文本
+                completion = this.cleanCompletionText(completion);
+                
                 return completion;
             } catch (generateError) {
-                console.warn('Generate API failed, trying chat API:', generateError);
-
                 // 回退到 chat API
                 // 创建一个临时会话对象
                 const tempSession = {
@@ -285,12 +334,13 @@ export class CodeCompletionProvider {
 
                 const chatResponse = await ollamaService.chat(defaultModel, prompt, tempSession);
                 let completion = chatResponse.trim();
-                completion = completion.replace(/^```[\w]*\n?/, '');
-                completion = completion.replace(/\n?```$/, '');
+                
+                // 清理并格式化补全文本
+                completion = this.cleanCompletionText(completion);
+                
                 return completion;
             }
         } catch (error) {
-            console.error('Error getting completion from Ollama:', error);
             return '';
         }
     }
@@ -320,7 +370,6 @@ export class CodeCompletionProvider {
         if (this.completionTimeout) {
             clearTimeout(this.completionTimeout);
         }
-        this.suggestionDecorationType.dispose();
         this.currentSuggestion = null;
 
         // 通知状态变化

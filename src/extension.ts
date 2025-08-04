@@ -22,6 +22,28 @@ export function activate(context: vscode.ExtensionContext) {
     const completionManager = new CompletionManager(ollamaService);
     completionManager.initialize(context);
 
+    // 注册 Inline Completion Provider
+    const inlineCompletionProvider = completionManager.getCompletionProvider();
+    const inlineCompletionDisposable = vscode.languages.registerInlineCompletionItemProvider(
+        [
+            { scheme: 'file', language: 'javascript' },
+            { scheme: 'file', language: 'typescript' },
+            { scheme: 'file', language: 'python' },
+            { scheme: 'file', language: 'java' },
+            { scheme: 'file', language: 'cpp' },
+            { scheme: 'file', language: 'c' },
+            { scheme: 'file', language: 'csharp' },
+            { scheme: 'file', language: 'php' },
+            { scheme: 'file', language: 'ruby' },
+            { scheme: 'file', language: 'go' },
+            { scheme: 'file', language: 'rust' },
+            { scheme: 'file', language: 'swift' },
+            { scheme: 'file', language: 'kotlin' }
+        ],
+        inlineCompletionProvider
+    );
+    context.subscriptions.push(inlineCompletionDisposable);
+
     // 初始化inline chat功能
     const inlineChatProvider = new InlineChatProvider(ollamaService, contextProcessor);
 

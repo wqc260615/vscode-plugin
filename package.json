@@ -293,16 +293,6 @@
         "when": "editorHasSelection"
       },
       {
-        "command": "aiAssistant.acceptCompletion",
-        "key": "tab",
-        "when": "editorTextFocus && aiAssistant.hasActiveCompletion && !suggestWidgetVisible && !parameterHintsVisible && !inlineSuggestionVisible"
-      },
-      {
-        "command": "aiAssistant.rejectCompletion",
-        "key": "escape",
-        "when": "editorTextFocus && aiAssistant.hasActiveCompletion"
-      },
-      {
         "command": "aiAssistant.triggerCompletion",
         "key": "ctrl+space",
         "mac": "cmd+space",
