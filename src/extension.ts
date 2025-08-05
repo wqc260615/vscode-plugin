@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { AIChatViewProvider } from './panels/AIChatViewProvider';
-import { SessionsTreeProvider, ContextTreeProvider, AIAssistantCommands } from './providers/TreeViewProviders';
+import { ContextTreeProvider, AIAssistantCommands } from './providers/TreeViewProviders';
 import { SessionManager } from './services/sessionManager';
 import { ProjectContextProcessor } from './services/projectContextProcessor';
 import { OllamaService } from './services/ollamaService';
@@ -48,7 +48,6 @@ export function activate(context: vscode.ExtensionContext) {
     const inlineChatProvider = new InlineChatProvider(ollamaService, contextProcessor);
 
     // 创建树视图提供者
-    const sessionsTreeProvider = new SessionsTreeProvider(sessionManager);
     const contextTreeProvider = new ContextTreeProvider(contextProcessor);
 
     // 注册主聊天视图提供者
@@ -58,11 +57,6 @@ export function activate(context: vscode.ExtensionContext) {
     );
 
     // 注册树视图
-    const sessionsTreeView = vscode.window.createTreeView('aiAssistant.sessionsView', {
-        treeDataProvider: sessionsTreeProvider,
-        showCollapseAll: false
-    });
-
     const contextTreeView = vscode.window.createTreeView('aiAssistant.contextView', {
         treeDataProvider: contextTreeProvider,
         showCollapseAll: true
@@ -72,7 +66,6 @@ export function activate(context: vscode.ExtensionContext) {
     const commandsManager = new AIAssistantCommands(
         sessionManager,
         contextProcessor,
-        sessionsTreeProvider,
         contextTreeProvider
     );
     commandsManager.registerCommands(context);
@@ -132,7 +125,6 @@ export function activate(context: vscode.ExtensionContext) {
 
     // 添加所有订阅
     context.subscriptions.push(
-        sessionsTreeView,
         contextTreeView,
         workspaceWatcher,
         fileSaveWatcher,

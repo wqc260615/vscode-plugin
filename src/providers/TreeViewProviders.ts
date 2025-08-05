@@ -2,63 +2,6 @@ import * as vscode from 'vscode';
 import { SessionManager, ChatSession } from '../services/sessionManager';
 import { ProjectContextProcessor, ReferenceFile } from '../services/projectContextProcessor';
 
-// 会话树视图提供者
-export class SessionsTreeProvider implements vscode.TreeDataProvider<SessionTreeItem> {
-    private _onDidChangeTreeData: vscode.EventEmitter<SessionTreeItem | undefined | null | void> = new vscode.EventEmitter<SessionTreeItem | undefined | null | void>();
-    readonly onDidChangeTreeData: vscode.Event<SessionTreeItem | undefined | null | void> = this._onDidChangeTreeData.event;
-
-    constructor(private sessionManager: SessionManager) {}
-
-    refresh(): void {
-        this._onDidChangeTreeData.fire();
-    }
-
-    getTreeItem(element: SessionTreeItem): vscode.TreeItem {
-        return element;
-    }
-
-    getChildren(element?: SessionTreeItem): Thenable<SessionTreeItem[]> {
-        if (!element) {
-            // 返回所有会话
-            const sessions = this.sessionManager.getAllSessions();
-            return Promise.resolve(sessions.map(session => new SessionTreeItem(
-                session.name,
-                session.id,
-                session.messages.length,
-                this.sessionManager.getActiveSession()?.id === session.id
-            )));
-        }
-        return Promise.resolve([]);
-    }
-}
-
-export class SessionTreeItem extends vscode.TreeItem {
-    constructor(
-        public readonly label: string,
-        public readonly sessionId: string,
-        public readonly messageCount: number,
-        public readonly isActive: boolean
-    ) {
-        super(label, vscode.TreeItemCollapsibleState.None);
-        this.tooltip = `${this.label} (${messageCount} messages)`;
-        this.description = messageCount > 0 ? `${messageCount} msgs` : 'empty';
-        this.contextValue = 'session';
-        
-        if (isActive) {
-            this.iconPath = new vscode.ThemeIcon('comment-discussion', new vscode.ThemeColor('charts.green'));
-        } else {
-            this.iconPath = new vscode.ThemeIcon('comment-discussion');
-        }
-
-        // 添加命令，点击时选择会话
-        this.command = {
-            command: 'aiAssistant.selectSession',
-            title: 'Select Session',
-            arguments: [sessionId]
-        };
-    }
-}
-
 // 上下文文件树视图提供者
 export class ContextTreeProvider implements vscode.TreeDataProvider<ContextTreeItem> {
     private _onDidChangeTreeData: vscode.EventEmitter<ContextTreeItem | undefined | null | void> = new vscode.EventEmitter<ContextTreeItem | undefined | null | void>();
@@ -140,62 +83,10 @@ export class AIAssistantCommands {
     constructor(
         private sessionManager: SessionManager,
         private contextProcessor: ProjectContextProcessor,
-        private sessionsTreeProvider: SessionsTreeProvider,
         private contextTreeProvider: ContextTreeProvider
     ) {}
 
     registerCommands(context: vscode.ExtensionContext) {
-        // 会话相关命令
-        const selectSessionCommand = vscode.commands.registerCommand('aiAssistant.selectSession', (sessionId: string) => {
-            this.sessionManager.setActiveSession(sessionId);
-            this.sessionsTreeProvider.refresh();
-            vscode.window.showInformationMessage(`Selected session: ${this.sessionManager.getSession(sessionId)?.name}`);
-        });
-
-        const newSessionCommand = vscode.commands.registerCommand('aiAssistant.newSession', async () => {
-            const name = await vscode.window.showInputBox({
-                prompt: 'Enter session name',
-                value: 'New Session'
-            });
-            if (name) {
-                this.sessionManager.createNewSession(name);
-                this.sessionsTreeProvider.refresh();
-            }
-        });
-
-        const deleteSessionCommand = vscode.commands.registerCommand('aiAssistant.deleteSession', async (item: SessionTreeItem) => {
-            const result = await vscode.window.showWarningMessage(
-                `Are you sure you want to delete session "${item.label}"?`,
-                'Delete', 'Cancel'
-            );
-            if (result === 'Delete') {
-                this.sessionManager.removeSession(item.sessionId);
-                this.sessionsTreeProvider.refresh();
-            }
-        });
-
-        const renameSessionCommand = vscode.commands.registerCommand('aiAssistant.renameSession', async (item: SessionTreeItem) => {
-            const newName = await vscode.window.showInputBox({
-                prompt: 'Enter new session name',
-                value: item.label
-            });
-            if (newName && newName.trim()) {
-                this.sessionManager.renameSession(item.sessionId, newName.trim());
-                this.sessionsTreeProvider.refresh();
-            }
-        });
-
-        const clearSessionCommand = vscode.commands.registerCommand('aiAssistant.clearSession', async (item: SessionTreeItem) => {
-            const result = await vscode.window.showWarningMessage(
-                `Are you sure you want to clear all messages in session "${item.label}"?`,
-                'Clear', 'Cancel'
-            );
-            if (result === 'Clear') {
-                this.sessionManager.clearSession(item.sessionId);
-                this.sessionsTreeProvider.refresh();
-            }
-        });
-
         // 上下文文件相关命令
         const addReferenceFileCommand = vscode.commands.registerCommand('aiAssistant.addReferenceFile', async () => {
             const fileUri = await vscode.window.showOpenDialog({
@@ -209,7 +100,9 @@ export class AIAssistantCommands {
                 let successCount = 0;
                 for (const uri of fileUri) {
                     const success = await this.contextProcessor.addReferenceFile(uri.fsPath);
-                    if (success) successCount++;
+                    if (success) {
+                        successCount++;
+                    }
                 }
                 this.contextTreeProvider.refresh();
                 vscode.window.showInformationMessage(`Added ${successCount} reference file(s)`);
@@ -262,11 +155,6 @@ export class AIAssistantCommands {
 
         // 注册所有命令
         context.subscriptions.push(
-            selectSessionCommand,
-            newSessionCommand,
-            deleteSessionCommand,
-            renameSessionCommand,
-            clearSessionCommand,
             addReferenceFileCommand,
             removeReferenceFileCommand,
             refreshProjectContextCommand,
