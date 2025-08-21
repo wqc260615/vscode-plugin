@@ -6,6 +6,7 @@ import { ProjectContextProcessor } from './services/projectContextProcessor';
 import { OllamaService } from './services/ollamaService';
 import { CompletionManager } from './services/completion/CompletionManager';
 import { InlineChatProvider } from './services/InlineChatProvider';
+import { StatusBarManager } from './services/statusBarManager';
 
 export function activate(context: vscode.ExtensionContext) {
     console.log('AI Assistant extension is now active!');
@@ -47,6 +48,9 @@ export function activate(context: vscode.ExtensionContext) {
     // 初始化inline chat功能
     const inlineChatProvider = new InlineChatProvider(ollamaService, contextProcessor);
 
+    // 初始化状态栏管理器
+    const statusBarManager = new StatusBarManager(ollamaService);
+
     // 创建树视图提供者
     const contextTreeProvider = new ContextTreeProvider(contextProcessor);
 
@@ -75,6 +79,12 @@ export function activate(context: vscode.ExtensionContext) {
         inlineChatProvider.showInlineChat();
     });
     context.subscriptions.push(inlineChatCommand);
+
+    // 注册状态栏点击命令
+    const checkConnectionCommand = vscode.commands.registerCommand('aiAssistant.checkConnection', () => {
+        statusBarManager.handleStatusBarClick();
+    });
+    context.subscriptions.push(checkConnectionCommand);
 
     // 注册工作区变化监听器
     const workspaceWatcher = vscode.workspace.onDidChangeWorkspaceFolders(async () => {
@@ -131,6 +141,7 @@ export function activate(context: vscode.ExtensionContext) {
         statusBarItem,
         completionStatusBar,
         configWatcher,
+        statusBarManager,  // 确保在扩展停用时正确清理状态栏管理器
         completionManager  // 确保在扩展停用时正确清理
     );
 

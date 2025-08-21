@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { SessionManager, ChatSession } from '../services/sessionManager';
 import { OllamaService } from '../services/ollamaService';
 import { ProjectContextProcessor } from '../services/projectContextProcessor';
+import { LLMErrorHandler } from '../services/errorHandler';
 import * as path from 'path';
 import * as fs from 'fs';
 
@@ -11,6 +12,7 @@ export class AIChatViewProvider implements vscode.WebviewViewProvider {
     private sessionManager: SessionManager;
     private ollamaService: OllamaService;
     private contextProcessor: ProjectContextProcessor;
+    private errorHandler: LLMErrorHandler;
 
     constructor(
         private readonly _extensionUri: vscode.Uri,
@@ -19,6 +21,7 @@ export class AIChatViewProvider implements vscode.WebviewViewProvider {
         this.sessionManager = new SessionManager(context);
         this.ollamaService = new OllamaService();
         this.contextProcessor = new ProjectContextProcessor();
+        this.errorHandler = LLMErrorHandler.getInstance();
         
         // 初始化项目上下文
         this.contextProcessor.initProjectContext();
@@ -80,7 +83,9 @@ export class AIChatViewProvider implements vscode.WebviewViewProvider {
     }
 
     private async _loadInitialData() {
-        if (!this._view) return;
+        if (!this._view) {
+            return;
+        }
 
         // 加载会话列表
         const sessions = this.sessionManager.getAllSessions();
@@ -111,7 +116,9 @@ export class AIChatViewProvider implements vscode.WebviewViewProvider {
     }
 
     private async _loadModels() {
-        if (!this._view) return;
+        if (!this._view) {
+            return;
+        }
 
         try {
             const models = await this.ollamaService.getModels();
@@ -120,15 +127,18 @@ export class AIChatViewProvider implements vscode.WebviewViewProvider {
                 data: { models }
             });
         } catch (error) {
+            const errorDetails = this.errorHandler.handleError(error, { operation: 'loadModels' });
             this._view.webview.postMessage({
                 type: 'error',
-                data: { message: 'Failed to load models: ' + error }
+                data: { message: errorDetails.userMessage }
             });
         }
     }
 
     private async _handleSendMessage(data: any) {
-        if (!this._view) return;
+        if (!this._view) {
+            return;
+        }
 
         const { message, model } = data;
         const activeSession = this.sessionManager.getActiveSession();
@@ -213,7 +223,9 @@ export class AIChatViewProvider implements vscode.WebviewViewProvider {
     }
 
     private async _createSession(name: string) {
-        if (!this._view) return;
+        if (!this._view) {
+            return;
+        }
 
         const session = this.sessionManager.createNewSession(name);
         this._view.webview.postMessage({
@@ -235,7 +247,9 @@ export class AIChatViewProvider implements vscode.WebviewViewProvider {
     }
 
     private async _deleteSession(sessionId: string) {
-        if (!this._view) return;
+        if (!this._view) {
+            return;
+        }
 
         if (this.sessionManager.removeSession(sessionId)) {
             this._view.webview.postMessage({
@@ -260,7 +274,9 @@ export class AIChatViewProvider implements vscode.WebviewViewProvider {
     }
 
     private async _selectSession(sessionId: string) {
-        if (!this._view) return;
+        if (!this._view) {
+            return;
+        }
 
         if (this.sessionManager.setActiveSession(sessionId)) {
             const session = this.sessionManager.getSession(sessionId);
@@ -279,7 +295,9 @@ export class AIChatViewProvider implements vscode.WebviewViewProvider {
     }
 
     private async _renameSession(sessionId: string, newName: string) {
-        if (!this._view) return;
+        if (!this._view) {
+            return;
+        }
 
         if (this.sessionManager.renameSession(sessionId, newName)) {
             this._view.webview.postMessage({
@@ -290,7 +308,9 @@ export class AIChatViewProvider implements vscode.WebviewViewProvider {
     }
 
     private async _clearMessages(sessionId: string) {
-        if (!this._view) return;
+        if (!this._view) {
+            return;
+        }
 
         if (this.sessionManager.clearSession(sessionId)) {
             this._view.webview.postMessage({

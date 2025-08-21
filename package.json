@@ -37,7 +37,8 @@
       {
         "command": "aiAssistant.removeReferenceFile",
         "title": "Remove Reference File",
-        "category": "AI Assistant"
+        "category": "AI Assistant",
+        "icon": "$(file-remove)"
       },
       {
         "command": "aiAssistant.refreshProjectContext",
@@ -54,42 +55,56 @@
       {
         "command": "aiAssistant.sendToAssistant",
         "title": "Send to AI Assistant",
-        "category": "AI Assistant"
+        "category": "AI Assistant",
+        "icon": "$(send)"
       },
       {
         "command": "aiAssistant.acceptCompletion",
         "title": "Accept AI Completion",
-        "category": "AI Assistant"
+        "category": "AI Assistant",
+        "icon": "$(check)"
       },
       {
         "command": "aiAssistant.rejectCompletion",
         "title": "Reject AI Completion",
-        "category": "AI Assistant"
+        "category": "AI Assistant",
+        "icon": "$(close)"
       },
       {
         "command": "aiAssistant.triggerCompletion",
         "title": "Trigger AI Completion",
-        "category": "AI Assistant"
+        "category": "AI Assistant",
+        "icon": "$(lightbulb)"
       },
       {
         "command": "aiAssistant.toggleCompletion",
         "title": "Toggle AI Code Completion",
-        "category": "AI Assistant"
+        "category": "AI Assistant",
+        "icon": "$(lightbulb)"
       },
       {
         "command": "aiAssistant.showInlineChat",
         "title": "Show Inline Chat",
-        "category": "AI Assistant"
+        "category": "AI Assistant",
+        "icon": "$(comment-discussion)"
       },
       {
         "command": "extension.inlineChat.enter",
         "title": "Inline Chat: Accept Input",
-        "category": "AI Assistant"
+        "category": "AI Assistant",
+        "icon": "$(check)"
       },
       {
         "command": "extension.inlineChat.escape",
         "title": "Inline Chat: Cancel Input",
-        "category": "AI Assistant"
+        "category": "AI Assistant",
+        "icon": "$(close)"
+      },
+      {
+        "command": "aiAssistant.checkConnection",
+        "title": "Check Ollama Connection",
+        "category": "AI Assistant",
+        "icon": "$(plug)"
       }
     ],
     "menus": {
@@ -211,6 +226,46 @@
           "type": "boolean",
           "default": true,
           "description": "Enable AI-powered code completion"
+        },
+        "aiAssistant.errorHandling": {
+          "type": "object",
+          "default": {
+            "showDetailedErrors": true,
+            "enableRetry": true,
+            "maxRetries": 3,
+            "cacheResponses": true,
+            "showConnectionWarnings": true
+          },
+          "properties": {
+            "showDetailedErrors": {
+              "type": "boolean",
+              "default": true,
+              "description": "Show detailed error messages with suggested solutions"
+            },
+            "enableRetry": {
+              "type": "boolean", 
+              "default": true,
+              "description": "Enable automatic retry for failed requests"
+            },
+            "maxRetries": {
+              "type": "number",
+              "default": 3,
+              "minimum": 1,
+              "maximum": 10,
+              "description": "Maximum number of retry attempts"
+            },
+            "cacheResponses": {
+              "type": "boolean",
+              "default": true,
+              "description": "Cache responses for fallback when service is unavailable"
+            },
+            "showConnectionWarnings": {
+              "type": "boolean",
+              "default": true,
+              "description": "Show warnings when Ollama service is not available"
+            }
+          },
+          "description": "Error handling and retry configuration"
         },
         "aiAssistant.completionDelay": {
           "type": "number",

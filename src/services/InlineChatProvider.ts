@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { OllamaService } from './ollamaService';
 import { ProjectContextProcessor } from './projectContextProcessor';
+import { LLMErrorHandler } from './errorHandler';
 
 export class InlineChatProvider {
     private ollamaService: OllamaService;
@@ -10,10 +11,12 @@ export class InlineChatProvider {
     private currentEditor: vscode.TextEditor | null = null;
     private currentPosition: vscode.Position | null = null;
     private isGenerating: boolean = false;
+    private errorHandler: LLMErrorHandler;
 
     constructor(ollamaService: OllamaService, contextProcessor: ProjectContextProcessor) {
         this.ollamaService = ollamaService;
         this.contextProcessor = contextProcessor;
+        this.errorHandler = LLMErrorHandler.getInstance();
         
         // 创建装饰类型用于显示生成的代码
         this.currentDecorationType = vscode.window.createTextEditorDecorationType({
@@ -519,8 +522,13 @@ Generate code that should be inserted at the <CURSOR> position. Return only the 
             }
 
         } catch (error) {
-            console.error('Error generating code:', error);
-            vscode.window.showErrorMessage(`Failed to generate code: ${error}`);
+            const errorDetails = this.errorHandler.handleError(error, { 
+                operation: 'inlineChat',
+                userInput,
+                model 
+            });
+            
+            await this.errorHandler.showErrorToUser(errorDetails, true);
         } finally {
             this.isGenerating = false;
             setTimeout(() => this.clearDecorations(), 2000);

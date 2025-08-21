@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { ChatSession, ChatMessage } from './sessionManager';
+import { LLMErrorHandler, ErrorType, ResponseCache } from './errorHandler';
 
 export interface OllamaModel {
     name: string;
@@ -15,14 +16,20 @@ export interface OllamaResponse {
 
 export class OllamaService {
     private baseUrl: string;
+    private errorHandler: LLMErrorHandler;
+    private cache: ResponseCache;
+    private connectionChecked: boolean = false;
 
     constructor() {
         this.baseUrl = this.getOllamaUrl();
+        this.errorHandler = LLMErrorHandler.getInstance();
+        this.cache = new ResponseCache();
 
         // 监听配置变化
         vscode.workspace.onDidChangeConfiguration(e => {
             if (e.affectsConfiguration('aiAssistant.ollamaUrl')) {
                 this.baseUrl = this.getOllamaUrl();
+                this.connectionChecked = false; // Reset connection check
             }
         });
     }
@@ -37,16 +44,27 @@ export class OllamaService {
      */
     public async getModels(): Promise<string[]> {
         try {
-            const response = await fetch(`${this.baseUrl}/api/tags`);
+            return await this.errorHandler.withRetry(async () => {
+                const response = await fetch(`${this.baseUrl}/api/tags`, {
+                    signal: AbortSignal.timeout(10000) // 10 second timeout
+                });
 
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-            }
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
 
-            const data = await response.json() as { models?: OllamaModel[] };
-            return data.models?.map((model: OllamaModel) => model.name) || [];
+                const data = await response.json() as { models?: OllamaModel[] };
+                const models = data.models?.map((model: OllamaModel) => model.name) || [];
+                
+                if (models.length === 0) {
+                    throw new Error('No models found. Please install at least one model using: ollama pull <model-name>');
+                }
+                
+                return models;
+            }, 'getModels');
         } catch (error) {
-            console.error('Error fetching Ollama models:', error);
+            const errorDetails = this.errorHandler.handleError(error, { operation: 'getModels' });
+            await this.errorHandler.showErrorToUser(errorDetails, true);
             return [];
         }
     }
@@ -56,13 +74,36 @@ export class OllamaService {
      */
     public async isServiceAvailable(): Promise<boolean> {
         try {
+            if (this.connectionChecked) {
+                return true;
+            }
+
             const response = await fetch(`${this.baseUrl}/api/tags`, {
                 method: 'GET',
-                signal: AbortSignal.timeout(5000) // 5秒超时
+                signal: AbortSignal.timeout(5000) // 5 second timeout
             });
-            return response.ok;
+            
+            const isAvailable = response.ok;
+            if (isAvailable) {
+                this.connectionChecked = true;
+            }
+            
+            return isAvailable;
         } catch (error) {
-            console.error('Ollama service not available:', error);
+            const errorDetails = this.errorHandler.handleError(error, { operation: 'serviceCheck' });
+            
+            // Only show error if this is not a background check
+            if (!this.connectionChecked) {
+                vscode.window.showWarningMessage(
+                    'Ollama service is not available. Please ensure Ollama is running.',
+                    'Help'
+                ).then(result => {
+                    if (result === 'Help') {
+                        this.errorHandler.showErrorToUser(errorDetails, false);
+                    }
+                });
+            }
+            
             return false;
         }
     }
@@ -79,78 +120,103 @@ export class OllamaService {
         onError: (error: Error) => void
     ): Promise<void> {
         try {
-            // 构建消息历史
-            const messages = session.messages.map(msg => ({
-                role: msg.isUser ? 'user' : 'assistant',
-                content: msg.content
-            }));
+            await this.errorHandler.withRetry(async () => {
+                // 首先验证服务可用性
+                const isAvailable = await this.isServiceAvailable();
+                if (!isAvailable) {
+                    throw new Error('Ollama service is not available');
+                }
 
-            // 添加当前用户消息
-            messages.push({
-                role: 'user',
-                content: prompt
-            });
+                // 构建消息历史
+                const messages = session.messages.map(msg => ({
+                    role: msg.isUser ? 'user' : 'assistant',
+                    content: msg.content
+                }));
 
-            const requestBody = {
-                model: model,
-                messages: messages,
-                stream: true
-            };
+                // 添加当前用户消息
+                messages.push({
+                    role: 'user',
+                    content: prompt
+                });
 
-            const response = await fetch(`${this.baseUrl}/api/chat`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(requestBody)
-            });
+                const requestBody = {
+                    model: model,
+                    messages: messages,
+                    stream: true
+                };
 
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-            }
+                const response = await fetch(`${this.baseUrl}/api/chat`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(requestBody),
+                    signal: AbortSignal.timeout(60000) // 60 second timeout for streaming
+                });
 
-            const reader = response.body?.getReader();
-            if (!reader) {
-                throw new Error('Failed to get response reader');
-            }
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
 
-            const decoder = new TextDecoder();
-            let buffer = '';
+                const reader = response.body?.getReader();
+                if (!reader) {
+                    throw new Error('Failed to get response reader');
+                }
 
-            try {
-                while (true) {
-                    const { done, value } = await reader.read();
+                const decoder = new TextDecoder();
+                let buffer = '';
 
-                    if (done) {
-                        break;
-                    }
+                try {
+                    while (true) {
+                        const { done, value } = await reader.read();
 
-                    buffer += decoder.decode(value, { stream: true });
-                    const lines = buffer.split('\n');
-                    buffer = lines.pop() || ''; // 保留未完成的行
+                        if (done) {
+                            break;
+                        }
 
-                    for (const line of lines) {
-                        if (line.trim()) {
-                            try {
-                                const data = JSON.parse(line);
-                                if (data.message?.content) {
-                                    onChunk(data.message.content);
+                        buffer += decoder.decode(value, { stream: true });
+                        const lines = buffer.split('\n');
+                        buffer = lines.pop() || ''; // 保留未完成的行
+
+                        for (const line of lines) {
+                            if (line.trim()) {
+                                try {
+                                    const data = JSON.parse(line);
+                                    if (data.message?.content) {
+                                        onChunk(data.message.content);
+                                    }
+                                    if (data.done) {
+                                        onComplete();
+                                        return;
+                                    }
+                                } catch (parseError) {
+                                    console.warn('Failed to parse chunk:', line);
                                 }
-                                if (data.done) {
-                                    onComplete();
-                                    return;
-                                }
-                            } catch (parseError) {
-                                console.warn('Failed to parse chunk:', line);
                             }
                         }
                     }
+                    onComplete();
+                } finally {
+                    reader.releaseLock();
                 }
-                onComplete();
-            } finally {
-                reader.releaseLock();
-            }
+            }, `chatStream_${model}_${Date.now()}`);
         } catch (error) {
+            const errorDetails = this.errorHandler.handleError(error, { 
+                operation: 'chatStream', 
+                model, 
+                promptLength: prompt.length 
+            });
+            
+            // 通知用户错误
+            this.errorHandler.showErrorToUser(errorDetails, true).then(action => {
+                if (action === 'retry') {
+                    // 用户选择重试
+                    setTimeout(() => {
+                        this.chatStream(model, prompt, session, onChunk, onComplete, onError);
+                    }, 1000);
+                }
+            });
+            
             onError(error as Error);
         }
     }
@@ -160,37 +226,74 @@ export class OllamaService {
      */
     public async chat(model: string, prompt: string, session: ChatSession): Promise<string> {
         try {
-            const messages = session.messages.map(msg => ({
-                role: msg.isUser ? 'user' : 'assistant',
-                content: msg.content
-            }));
+            return await this.errorHandler.withRetry(async () => {
+                // 检查缓存
+                const cacheKey = this.cache.generateKey(model, prompt + JSON.stringify(session.messages));
+                const cachedResponse = this.cache.get(cacheKey);
+                if (cachedResponse) {
+                    vscode.window.showInformationMessage('Using cached response');
+                    return cachedResponse;
+                }
 
-            messages.push({
-                role: 'user',
-                content: prompt
-            });
+                // 验证服务可用性
+                const isAvailable = await this.isServiceAvailable();
+                if (!isAvailable) {
+                    throw new Error('Ollama service is not available');
+                }
 
-            const requestBody = {
-                model: model,
-                messages: messages,
-                stream: false
-            };
+                const messages = session.messages.map(msg => ({
+                    role: msg.isUser ? 'user' : 'assistant',
+                    content: msg.content
+                }));
 
-            const response = await fetch(`${this.baseUrl}/api/chat`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(requestBody)
-            });
+                messages.push({
+                    role: 'user',
+                    content: prompt
+                });
 
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-            }
+                const requestBody = {
+                    model: model,
+                    messages: messages,
+                    stream: false
+                };
 
-            const data = await response.json() as { message?: { content?: string } };
-            return data.message?.content || 'No response received';
+                const response = await fetch(`${this.baseUrl}/api/chat`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(requestBody),
+                    signal: AbortSignal.timeout(30000) // 30 second timeout
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json() as { message?: { content?: string } };
+                const responseContent = data.message?.content || 'No response received';
+                
+                // 缓存响应
+                this.cache.set(cacheKey, responseContent);
+                
+                return responseContent;
+            }, `chat_${model}_${Date.now()}`);
         } catch (error) {
+            const errorDetails = this.errorHandler.handleError(error, { 
+                operation: 'chat', 
+                model, 
+                promptLength: prompt.length 
+            });
+            
+            // 尝试从缓存获取备用响应
+            const fallbackKey = this.cache.generateKey(model, prompt);
+            const fallbackResponse = this.cache.get(fallbackKey);
+            if (fallbackResponse) {
+                vscode.window.showWarningMessage('Using cached fallback response due to connection issues');
+                return fallbackResponse;
+            }
+            
+            await this.errorHandler.showErrorToUser(errorDetails, true);
             throw new Error(`Failed to get response from Ollama: ${error}`);
         }
     }
@@ -200,52 +303,91 @@ export class OllamaService {
     */
     public async generate(model: string, prompt: string): Promise<string> {
         try {
-            // 首先检查模型是否存在
-            const availableModels = await this.getModels();
-            if (!availableModels.includes(model)) {
-                throw new Error(`Model '${model}' not found. Available models: ${availableModels.join(', ')}`);
-            }
-
-            const requestBody = {
-                model: model,
-                prompt: prompt,
-                stream: false
-            };
-
-            console.log(`Requesting generation from: ${this.baseUrl}/api/generate`);
-
-            const response = await fetch(`${this.baseUrl}/api/generate`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(requestBody)
-            });
-
-            if (!response.ok) {
-                // 如果 generate API 不可用（404），尝试使用 chat API
-                if (response.status === 404) {
-                    console.warn('Generate API not available, falling back to chat API');
-                    return await this.generateWithChatAPI(model, prompt);
+            return await this.errorHandler.withRetry(async () => {
+                // 检查缓存
+                const cacheKey = this.cache.generateKey(model, prompt);
+                const cachedResponse = this.cache.get(cacheKey);
+                if (cachedResponse) {
+                    return cachedResponse;
                 }
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-            }
 
-            const data = await response.json() as { response?: string };
-            return data.response || 'No response received';
+                // 验证服务可用性
+                const isAvailable = await this.isServiceAvailable();
+                if (!isAvailable) {
+                    throw new Error('Ollama service is not available');
+                }
+
+                // 首先检查模型是否存在
+                const availableModels = await this.getModels();
+                if (!availableModels.includes(model)) {
+                    throw new Error(`Model '${model}' not found. Available models: ${availableModels.join(', ')}`);
+                }
+
+                const requestBody = {
+                    model: model,
+                    prompt: prompt,
+                    stream: false
+                };
+
+                const response = await fetch(`${this.baseUrl}/api/generate`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(requestBody),
+                    signal: AbortSignal.timeout(30000) // 30 second timeout
+                });
+
+                if (!response.ok) {
+                    // 如果 generate API 不可用（404），尝试使用 chat API
+                    if (response.status === 404) {
+                        console.warn('Generate API not available, falling back to chat API');
+                        return await this.generateWithChatAPI(model, prompt);
+                    }
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json() as { response?: string };
+                const responseContent = data.response || 'No response received';
+                
+                // 缓存响应
+                this.cache.set(cacheKey, responseContent);
+                
+                return responseContent;
+            }, `generate_${model}_${Date.now()}`);
         } catch (error) {
-            console.error('Generate API error:', error);
+            const errorDetails = this.errorHandler.handleError(error, { 
+                operation: 'generate', 
+                model, 
+                promptLength: prompt.length 
+            });
 
             // 如果是网络错误或404，尝试使用 chat API 作为备选
             if (error instanceof Error && (error.message.includes('404') || error.message.includes('fetch'))) {
                 try {
                     console.log('Trying chat API as fallback...');
-                    return await this.generateWithChatAPI(model, prompt);
+                    const fallbackResponse = await this.generateWithChatAPI(model, prompt);
+                    
+                    // 缓存备用响应
+                    const cacheKey = this.cache.generateKey(model, prompt);
+                    this.cache.set(cacheKey, fallbackResponse);
+                    
+                    return fallbackResponse;
                 } catch (chatError) {
+                    await this.errorHandler.showErrorToUser(errorDetails, true);
                     throw new Error(`Both generate and chat APIs failed. Original error: ${error.message}`);
                 }
             }
 
+            // 尝试从缓存获取备用响应
+            const fallbackKey = this.cache.generateKey(model, prompt);
+            const fallbackResponse = this.cache.get(fallbackKey);
+            if (fallbackResponse) {
+                vscode.window.showWarningMessage('Using cached response due to connection issues');
+                return fallbackResponse;
+            }
+
+            await this.errorHandler.showErrorToUser(errorDetails, true);
             throw new Error(`Failed to generate response: ${error}`);
         }
     }
@@ -286,50 +428,66 @@ export class OllamaService {
      */
     public async pullModel(modelName: string, onProgress?: (progress: any) => void): Promise<boolean> {
         try {
-            const response = await fetch(`${this.baseUrl}/api/pull`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    name: modelName,
-                    stream: !!onProgress
-                })
-            });
+            return await this.errorHandler.withRetry(async () => {
+                // 验证服务可用性
+                const isAvailable = await this.isServiceAvailable();
+                if (!isAvailable) {
+                    throw new Error('Ollama service is not available');
+                }
 
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-            }
+                const response = await fetch(`${this.baseUrl}/api/pull`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        name: modelName,
+                        stream: !!onProgress
+                    }),
+                    signal: AbortSignal.timeout(300000) // 5 minute timeout for model pulling
+                });
 
-            if (onProgress && response.body) {
-                const reader = response.body.getReader();
-                const decoder = new TextDecoder();
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
 
-                try {
-                    while (true) {
-                        const { done, value } = await reader.read();
-                        if (done) break;
+                if (onProgress && response.body) {
+                    const reader = response.body.getReader();
+                    const decoder = new TextDecoder();
 
-                        const chunk = decoder.decode(value);
-                        const lines = chunk.split('\n').filter(line => line.trim());
+                    try {
+                        while (true) {
+                            const { done, value } = await reader.read();
+                            if (done) {
+                                break;
+                            }
 
-                        for (const line of lines) {
-                            try {
-                                const data = JSON.parse(line);
-                                onProgress(data);
-                            } catch (parseError) {
-                                console.warn('Failed to parse progress chunk:', line);
+                            const chunk = decoder.decode(value);
+                            const lines = chunk.split('\n').filter(line => line.trim());
+
+                            for (const line of lines) {
+                                try {
+                                    const data = JSON.parse(line);
+                                    onProgress(data);
+                                } catch (parseError) {
+                                    console.warn('Failed to parse progress chunk:', line);
+                                }
                             }
                         }
+                    } finally {
+                        reader.releaseLock();
                     }
-                } finally {
-                    reader.releaseLock();
                 }
-            }
 
-            return true;
+                return true;
+            }, `pullModel_${modelName}`);
         } catch (error) {
-            console.error('Error pulling model:', error);
+            const errorDetails = this.errorHandler.handleError(error, { 
+                operation: 'pullModel', 
+                modelName 
+            });
+            
+            await this.errorHandler.showErrorToUser(errorDetails, true);
             return false;
         }
     }
@@ -339,19 +497,27 @@ export class OllamaService {
      */
     public async deleteModel(modelName: string): Promise<boolean> {
         try {
-            const response = await fetch(`${this.baseUrl}/api/delete`, {
-                method: 'DELETE',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    name: modelName
-                })
-            });
+            return await this.errorHandler.withRetry(async () => {
+                const response = await fetch(`${this.baseUrl}/api/delete`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        name: modelName
+                    }),
+                    signal: AbortSignal.timeout(30000) // 30 second timeout
+                });
 
-            return response.ok;
+                return response.ok;
+            }, `deleteModel_${modelName}`);
         } catch (error) {
-            console.error('Error deleting model:', error);
+            const errorDetails = this.errorHandler.handleError(error, { 
+                operation: 'deleteModel', 
+                modelName 
+            });
+            
+            await this.errorHandler.showErrorToUser(errorDetails, true);
             return false;
         }
     }
@@ -361,23 +527,31 @@ export class OllamaService {
      */
     public async getModelInfo(modelName: string): Promise<any> {
         try {
-            const response = await fetch(`${this.baseUrl}/api/show`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    name: modelName
-                })
-            });
+            return await this.errorHandler.withRetry(async () => {
+                const response = await fetch(`${this.baseUrl}/api/show`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        name: modelName
+                    }),
+                    signal: AbortSignal.timeout(15000) // 15 second timeout
+                });
 
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-            }
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
 
-            return await response.json();
+                return await response.json();
+            }, `getModelInfo_${modelName}`);
         } catch (error) {
-            console.error('Error getting model info:', error);
+            const errorDetails = this.errorHandler.handleError(error, { 
+                operation: 'getModelInfo', 
+                modelName 
+            });
+            
+            // For model info, don't show error to user unless explicitly requested
             return null;
         }
     }

@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { OllamaService } from '../ollamaService';
+import { LLMErrorHandler } from '../errorHandler';
 
 export interface CompletionSuggestion {
     text: string;
@@ -12,12 +13,14 @@ export class CodeCompletionProvider implements vscode.InlineCompletionItemProvid
     private completionTimeout: NodeJS.Timeout | null = null;
     private isGenerating: boolean = false;
     private ollamaService: any;
+    private errorHandler: LLMErrorHandler;
 
     // 添加状态变化回调
     public onCompletionStateChanged: ((hasCompletion: boolean) => void) | null = null;
 
     constructor(ollamaService: any) {
         this.ollamaService = ollamaService;
+        this.errorHandler = LLMErrorHandler.getInstance();
     }
 
     /**
@@ -67,6 +70,12 @@ export class CodeCompletionProvider implements vscode.InlineCompletionItemProvid
 
             return [item];
         } catch (error) {
+            const errorDetails = this.errorHandler.handleError(error, { 
+                operation: 'inlineCompletion',
+                position: position.line + ':' + position.character 
+            });
+            
+            // Don't show error UI for completion failures, just log them
             return null;
         } finally {
             this.isGenerating = false;
