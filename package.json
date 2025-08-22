@@ -146,9 +146,6 @@
       ],
       "commandPalette": [
         {
-          "command": "aiAssistant.newSession"
-        },
-        {
           "command": "aiAssistant.addReferenceFile"
         },
         {
