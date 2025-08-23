@@ -7,6 +7,8 @@ import { OllamaService } from './services/ollamaService';
 import { CompletionManager } from './services/completion/CompletionManager';
 import { InlineChatProvider } from './services/InlineChatProvider';
 import { StatusBarManager } from './services/statusBarManager';
+import { ExtensibleFeatureManager } from './services/ExtensibleFeatureManager';
+import { getDefaultFeatures } from './services/DefaultExtensibleFeatures';
 
 export function activate(context: vscode.ExtensionContext) {
     console.log('AI Assistant extension is now active!');
@@ -50,6 +52,19 @@ export function activate(context: vscode.ExtensionContext) {
 
     // 初始化状态栏管理器
     const statusBarManager = new StatusBarManager(ollamaService);
+
+    // 初始化可扩展功能管理器
+    const extensibleFeatureManager = ExtensibleFeatureManager.getInstance();
+    const defaultFeatures = getDefaultFeatures();
+    
+    // 注册默认功能
+    defaultFeatures.shortcuts.forEach(shortcut => {
+        extensibleFeatureManager.registerShortcutCommand(shortcut);
+    });
+    
+    defaultFeatures.contextMenus.forEach(contextMenu => {
+        extensibleFeatureManager.registerContextMenuItem(contextMenu);
+    });
 
     // 创建树视图提供者
     const contextTreeProvider = new ContextTreeProvider(contextProcessor);
@@ -142,7 +157,8 @@ export function activate(context: vscode.ExtensionContext) {
         completionStatusBar,
         configWatcher,
         statusBarManager,  // 确保在扩展停用时正确清理状态栏管理器
-        completionManager  // 确保在扩展停用时正确清理
+        completionManager,  // 确保在扩展停用时正确清理
+        extensibleFeatureManager  // 确保在扩展停用时正确清理可扩展功能管理器
     );
 
     // 显示激活消息

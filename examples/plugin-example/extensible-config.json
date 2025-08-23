@@ -1,0 +1,68 @@
+{
+  "extensibleFeatures": {
+    "shortcuts": [
+      {
+        "id": "customCodeAnalysis",
+        "name": "Custom Code Analysis",
+        "description": "自定义代码分析功能",
+        "keybinding": "ctrl+shift+a",
+        "category": "Code Analysis",
+        "enabled": true,
+        "command": "aiAssistant.extensible.customCodeAnalysis"
+      },
+      {
+        "id": "quickDocumentation",
+        "name": "Quick Documentation",
+        "description": "快速生成文档",
+        "keybinding": "ctrl+shift+d",
+        "category": "Documentation",
+        "enabled": true,
+        "command": "aiAssistant.extensible.quickDocumentation"
+      }
+    ],
+    "contextMenus": [
+      {
+        "id": "generateTest",
+        "name": "Generate Test",
+        "description": "为选中的代码生成测试",
+        "title": "生成测试",
+        "icon": "$(beaker)",
+        "when": "editorHasSelection",
+        "group": "testing@1",
+        "order": 1,
+        "enabled": true,
+        "command": "aiAssistant.contextMenu.generateTest"
+      },
+      {
+        "id": "codeReview",
+        "name": "Code Review",
+        "description": "代码审查",
+        "title": "代码审查",
+        "icon": "$(search)",
+        "when": "resourceExtname == .js || resourceExtname == .ts",
+        "group": "review@1",
+        "order": 1,
+        "enabled": true,
+        "command": "aiAssistant.contextMenu.codeReview"
+      }
+    ]
+  },
+  "featureGroups": {
+    "codeQuality": {
+      "name": "代码质量",
+      "description": "代码质量相关功能",
+      "features": ["customCodeAnalysis", "codeReview"]
+    },
+    "development": {
+      "name": "开发辅助",
+      "description": "开发辅助功能",
+      "features": ["quickDocumentation", "generateTest"]
+    }
+  },
+  "settings": {
+    "autoEnableNewFeatures": true,
+    "featureDiscovery": true,
+    "customKeybindings": true
+  }
+}
+

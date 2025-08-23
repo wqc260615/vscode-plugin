@@ -105,6 +105,24 @@
         "title": "Check Ollama Connection",
         "category": "AI Assistant",
         "icon": "$(plug)"
+      },
+      {
+        "command": "aiAssistant.extensible.quickCodeReview",
+        "title": "Quick Code Review",
+        "category": "AI Assistant",
+        "icon": "$(search)"
+      },
+      {
+        "command": "aiAssistant.contextMenu.explainCode",
+        "title": "Explain Code",
+        "category": "AI Assistant",
+        "icon": "$(lightbulb)"
+      },
+      {
+        "command": "aiAssistant.contextMenu.optimizeCode",
+        "title": "Optimize Code",
+        "category": "AI Assistant",
+        "icon": "$(zap)"
       }
     ],
     "menus": {
@@ -142,6 +160,16 @@
           "command": "aiAssistant.triggerCompletion",
           "when": "editorTextFocus",
           "group": "navigation"
+        },
+        {
+          "command": "aiAssistant.contextMenu.explainCode",
+          "when": "editorHasSelection",
+          "group": "ai@1"
+        },
+        {
+          "command": "aiAssistant.contextMenu.optimizeCode",
+          "when": "resourceExtname == .js || resourceExtname == .ts || resourceExtname == .py",
+          "group": "ai@2"
         }
       ],
       "commandPalette": [
@@ -169,6 +197,9 @@
         },
         {
           "command": "aiAssistant.showInlineChat"
+        },
+        {
+          "command": "aiAssistant.extensible.quickCodeReview"
         }
       ]
     },
@@ -314,6 +345,11 @@
         "command": "extension.inlineChat.escape",
         "key": "escape",
         "when": "inlineChatActive && editorTextFocus"
+      },
+      {
+        "command": "aiAssistant.extensible.quickCodeReview",
+        "key": "ctrl+shift+r",
+        "mac": "cmd+shift+r"
       }
     ]
   },
