@@ -116,24 +116,19 @@ export class InlineChatProvider {
      * 创建真正的内联输入界面 - 使用装饰器在光标位置显示输入框
      */
     private async createInlineInput(context: string) {
-        const models = await this.ollamaService.getModels();
-        
-        // 如果没有可用模型，显示错误信息
-        if (!models || models.length === 0) {
-            vscode.window.showErrorMessage('No Ollama models available. Please ensure Ollama is running and models are installed.');
-            return;
+        try {
+            const preferredModel = await this.ollamaService.getPreferredModel();
+            
+            if (!this.currentEditor || !this.currentPosition) {
+                return;
+            }
+
+            // 创建内联输入装饰
+            await this.showInlineInputWidget(context, preferredModel);
+        } catch (error) {
+            const errorDetails = this.errorHandler.handleError(error, { operation: 'createInlineInput' });
+            vscode.window.showErrorMessage(errorDetails.userMessage);
         }
-
-        // 优先使用配置中的默认模型，如果不存在则使用第一个可用模型
-        const configModel = vscode.workspace.getConfiguration('aiAssistant').get('defaultModel', '');
-        const defaultModel = models.includes(configModel) ? configModel : models[0];
-
-        if (!this.currentEditor || !this.currentPosition) {
-            return;
-        }
-
-        // 创建内联输入装饰
-        await this.showInlineInputWidget(context, defaultModel);
     }
 
     /**

@@ -291,19 +291,10 @@ export class CodeCompletionProvider implements vscode.InlineCompletionItemProvid
                 return '';
             }
             
-            // 获取可用模型列表
-            const models = await ollamaService.getModels();
-            if (!models || models.length === 0) {
+            // 获取首选模型
+            const preferredModel = await ollamaService.getPreferredModel();
+            if (!preferredModel) {
                 return '';
-            }
-
-            // 获取配置中的模型，如果不存在则使用第一个可用模型
-            const config = vscode.workspace.getConfiguration('aiAssistant');
-            let defaultModel = config.get('defaultModel', '');
-
-            // 如果没有配置默认模型或配置的模型不在可用列表中，使用第一个可用模型
-            if (!defaultModel || !models.includes(defaultModel)) {
-                defaultModel = models[0];
             }
 
             const prompt = `You are an AI code completion assistant. Your task is to complete the code at the <BLANK> position.
@@ -323,7 +314,7 @@ Complete the code at <BLANK>:`;
 
             // 优先使用 generate 方法，如果失败则回退到 chat 方法
             try {
-                const response = await ollamaService.generate(defaultModel, prompt);
+                const response = await ollamaService.generate(preferredModel, prompt);
                 let completion = response.trim();
                 
                 // 清理响应，移除可能的代码块标记
@@ -341,7 +332,7 @@ Complete the code at <BLANK>:`;
                     messages: []
                 };
 
-                const chatResponse = await ollamaService.chat(defaultModel, prompt, tempSession);
+                const chatResponse = await ollamaService.chat(preferredModel, prompt, tempSession);
                 let completion = chatResponse.trim();
                 
                 // 清理并格式化补全文本

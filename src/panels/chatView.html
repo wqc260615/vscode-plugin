@@ -683,7 +683,7 @@
                     loadMessages(message.data.messages);
                     break;
                 case 'modelsLoaded':
-                    loadModels(message.data.models);
+                    loadModels(message.data.models, message.data.preferredModel);
                     break;
                 case 'sessionCreated':
                     addSession(message.data.session);
@@ -964,7 +964,7 @@
             // This is handled by updateAiResponse
         }
 
-        function loadModels(models) {
+        function loadModels(models, preferredModel) {
             const modelSelect = document.getElementById('modelSelect');
             modelSelect.innerHTML = '';
             
@@ -973,11 +973,14 @@
                 return;
             }
             
-            models.forEach((model, index) => {
+            models.forEach((model) => {
                 const option = document.createElement('option');
                 option.value = model;
                 option.textContent = model;
-                if (index === 0) option.selected = true;
+                // Select the preferred model if specified, otherwise select the first model
+                if ((preferredModel && model === preferredModel) || (!preferredModel && models.indexOf(model) === 0)) {
+                    option.selected = true;
+                }
                 modelSelect.appendChild(option);
             });
         }

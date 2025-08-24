@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { ChatSession, ChatMessage } from './sessionManager';
 import { LLMErrorHandler, ErrorType, ResponseCache } from './errorHandler';
+import { PerformanceMonitor } from './performanceMonitor';
 
 export interface OllamaModel {
     name: string;
@@ -18,12 +19,14 @@ export class OllamaService {
     private baseUrl: string;
     private errorHandler: LLMErrorHandler;
     private cache: ResponseCache;
+    private performanceMonitor: PerformanceMonitor;
     private connectionChecked: boolean = false;
 
     constructor() {
         this.baseUrl = this.getOllamaUrl();
         this.errorHandler = LLMErrorHandler.getInstance();
         this.cache = new ResponseCache();
+        this.performanceMonitor = PerformanceMonitor.getInstance();
 
         // 监听配置变化
         vscode.workspace.onDidChangeConfiguration(e => {
@@ -66,6 +69,54 @@ export class OllamaService {
             const errorDetails = this.errorHandler.handleError(error, { operation: 'getModels' });
             await this.errorHandler.showErrorToUser(errorDetails, true);
             return [];
+        }
+    }
+
+    /**
+     * 获取首选模型（自动选择最佳可用模型）
+     */
+    public async getPreferredModel(): Promise<string> {
+        try {
+            const config = vscode.workspace.getConfiguration('aiAssistant');
+            const defaultModel = config.get('defaultModel', '');
+            
+            const availableModels = await this.getModels();
+            
+            if (availableModels.length === 0) {
+                throw new Error('No models available. Please install a model using: ollama pull <model-name>');
+            }
+
+            // If user specified default model and it exists, use it
+            if (defaultModel && availableModels.includes(defaultModel)) {
+                return defaultModel;
+            }
+
+            // Model preference order (best to least preferred)
+            const preferredOrder = [
+                'llama3.2', 'llama3.1', 'llama3', 'llama2',
+                'codellama', 'codegemma',
+                'gemma2', 'gemma3', 'gemma',
+                'phi3', 'qwen2', 'mistral',
+                'tinyllama' // Fallback for performance
+            ];
+
+            // Find first available model from preference list
+            for (const preferredModel of preferredOrder) {
+                const foundModel = availableModels.find(model => 
+                    model.includes(preferredModel) || model.startsWith(preferredModel)
+                );
+                if (foundModel) {
+                    console.log(`🤖 Using model: ${foundModel}`);
+                    return foundModel;
+                }
+            }
+
+            // If no preferred model found, use the first available model
+            console.log(`🤖 Using fallback model: ${availableModels[0]}`);
+            return availableModels[0];
+        } catch (error) {
+            console.error('Error getting preferred model:', error);
+            return 'llama2'; // Fallback
         }
     }
 
@@ -117,8 +168,56 @@ export class OllamaService {
         session: ChatSession,
         onChunk: (chunk: string) => void,
         onComplete: () => void,
-        onError: (error: Error) => void
+        onError: (error: Error) => void,
+        userActionStartTime?: number
     ): Promise<void> {
+        const requestStartTime = performance.now();
+        const userStartTime = userActionStartTime || requestStartTime;
+        let completeResponse = '';
+        let firstChunkReceived = false;
+        let firstChunkTime: number | null = null;
+        
+        const wrappedOnChunk = (chunk: string) => {
+            // Record the time when first chunk is received (end-to-end latency)
+            if (!firstChunkReceived) {
+                firstChunkReceived = true;
+                firstChunkTime = performance.now();
+                
+                // Log end-to-end latency from user action to first response
+                const endToEndLatency = firstChunkTime - userStartTime;
+                console.log(`⚡ End-to-end latency: ${endToEndLatency.toFixed(2)}ms (from user action to first response)`);
+                this.performanceMonitor.logEndToEndLatency(
+                    'Chat Response Time',
+                    prompt.length,
+                    chunk.length,
+                    userStartTime,
+                    firstChunkTime
+                );
+            }
+            
+            completeResponse += chunk;
+            onChunk(chunk);
+        };
+
+        const wrappedOnComplete = () => {
+            const endTime = performance.now();
+            // Log overall chat performance (full response completion)
+            this.performanceMonitor.logChatPerformance(
+                prompt,
+                completeResponse,
+                requestStartTime,
+                endTime,
+                model
+            );
+            onComplete();
+        };
+
+        const wrappedOnError = (error: Error) => {
+            const endTime = performance.now();
+            console.log(`❌ Chat error after ${(endTime - requestStartTime).toFixed(2)}ms: ${error.message}`);
+            onError(error);
+        };
+
         try {
             await this.errorHandler.withRetry(async () => {
                 // 首先验证服务可用性
@@ -183,10 +282,10 @@ export class OllamaService {
                                 try {
                                     const data = JSON.parse(line);
                                     if (data.message?.content) {
-                                        onChunk(data.message.content);
+                                        wrappedOnChunk(data.message.content);
                                     }
                                     if (data.done) {
-                                        onComplete();
+                                        wrappedOnComplete();
                                         return;
                                     }
                                 } catch (parseError) {
@@ -195,7 +294,7 @@ export class OllamaService {
                             }
                         }
                     }
-                    onComplete();
+                    wrappedOnComplete();
                 } finally {
                     reader.releaseLock();
                 }
@@ -212,12 +311,12 @@ export class OllamaService {
                 if (action === 'retry') {
                     // 用户选择重试
                     setTimeout(() => {
-                        this.chatStream(model, prompt, session, onChunk, onComplete, onError);
+                        this.chatStream(model, prompt, session, onChunk, onComplete, onError, userStartTime);
                     }, 1000);
                 }
             });
             
-            onError(error as Error);
+            wrappedOnError(error as Error);
         }
     }
 
@@ -302,8 +401,10 @@ export class OllamaService {
     * 生成简单文本（不包含会话上下文）- 改进版本
     */
     public async generate(model: string, prompt: string): Promise<string> {
+        const startTime = performance.now();
+        
         try {
-            return await this.errorHandler.withRetry(async () => {
+            const result = await this.errorHandler.withRetry(async () => {
                 // 检查缓存
                 const cacheKey = this.cache.generateKey(model, prompt);
                 const cachedResponse = this.cache.get(cacheKey);
@@ -355,7 +456,22 @@ export class OllamaService {
                 
                 return responseContent;
             }, `generate_${model}_${Date.now()}`);
+
+            // Log performance for successful generation
+            const endTime = performance.now();
+            this.performanceMonitor.logEndToEndLatency(
+                'Code Generation',
+                prompt.length,
+                result.length,
+                startTime,
+                endTime
+            );
+            
+            return result;
         } catch (error) {
+            const endTime = performance.now();
+            console.log(`❌ Generation error after ${(endTime - startTime).toFixed(2)}ms: ${error}`);
+            
             const errorDetails = this.errorHandler.handleError(error, { 
                 operation: 'generate', 
                 model, 

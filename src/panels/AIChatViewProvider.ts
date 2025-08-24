@@ -122,9 +122,14 @@ export class AIChatViewProvider implements vscode.WebviewViewProvider {
 
         try {
             const models = await this.ollamaService.getModels();
+            const preferredModel = await this.ollamaService.getPreferredModel();
+            
             this._view.webview.postMessage({
                 type: 'modelsLoaded',
-                data: { models }
+                data: { 
+                    models,
+                    preferredModel 
+                }
             });
         } catch (error) {
             const errorDetails = this.errorHandler.handleError(error, { operation: 'loadModels' });
@@ -140,7 +145,17 @@ export class AIChatViewProvider implements vscode.WebviewViewProvider {
             return;
         }
 
-        const { message, model } = data;
+        // Record the time when user action starts (when they click enter/send)
+        const userActionStartTime = performance.now();
+        
+        const { message } = data;
+        let { model } = data;
+        
+        // 如果没有指定模型或模型不可用，使用首选模型
+        if (!model) {
+            model = await this.ollamaService.getPreferredModel();
+        }
+        
         const activeSession = this.sessionManager.getActiveSession();
         
         if (!activeSession) {
@@ -176,7 +191,7 @@ export class AIChatViewProvider implements vscode.WebviewViewProvider {
 
             let responseContent = '';
             
-            // 调用Ollama API（流式响应）
+            // 调用Ollama API（流式响应） - 传递用户操作开始时间
             await this.ollamaService.chatStream(
                 model,
                 fullPrompt,
@@ -211,7 +226,8 @@ export class AIChatViewProvider implements vscode.WebviewViewProvider {
                         type: 'aiThinking',
                         data: { thinking: false }
                     });
-                }
+                },
+                userActionStartTime // 传递用户操作开始时间
             );
 
         } catch (error) {
