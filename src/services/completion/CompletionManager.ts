@@ -1,17 +1,17 @@
 import * as vscode from 'vscode';
 import { CodeCompletionProvider } from './CodeCompletionProvider';
-import { OllamaService } from '../ollamaService';
+import { LLMServiceManager } from '../LLMServiceManager';
 
 export class CompletionManager {
     private completionProvider: CodeCompletionProvider;
-    private ollamaService: OllamaService;
+    private llmServiceManager: LLMServiceManager;
     private disposables: vscode.Disposable[] = [];
     private documentChangeListeners: Map<string, vscode.Disposable> = new Map();
     private selectionChangeListeners: Map<string, vscode.Disposable> = new Map();
 
-    constructor(ollamaService: OllamaService) {
-        this.ollamaService = ollamaService;
-        this.completionProvider = new CodeCompletionProvider(ollamaService);
+    constructor(llmServiceManager: LLMServiceManager) {
+        this.llmServiceManager = llmServiceManager;
+        this.completionProvider = new CodeCompletionProvider(llmServiceManager);
 
         // 监听补全状态变化
         this.completionProvider.onCompletionStateChanged = (hasCompletion: boolean) => {

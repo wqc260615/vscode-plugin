@@ -1,15 +1,15 @@
 import * as vscode from 'vscode';
-import { OllamaService } from './ollamaService';
+import { LLMServiceManager } from './LLMServiceManager';
 import { LLMErrorHandler } from './errorHandler';
 
 export class StatusBarManager {
     private statusBarItem: vscode.StatusBarItem;
-    private ollamaService: OllamaService;
+    private llmServiceManager: LLMServiceManager;
     private errorHandler: LLMErrorHandler;
     private checkInterval: NodeJS.Timeout | null = null;
 
-    constructor(ollamaService: OllamaService) {
-        this.ollamaService = ollamaService;
+    constructor(llmServiceManager: LLMServiceManager) {
+        this.llmServiceManager = llmServiceManager;
         this.errorHandler = LLMErrorHandler.getInstance();
         
         // 创建状态栏项
@@ -36,33 +36,36 @@ export class StatusBarManager {
 
     private async checkStatus() {
         try {
-            const isAvailable = await this.ollamaService.isServiceAvailable();
+            const isAvailable = await this.llmServiceManager.isServiceAvailable();
+            const providerName = this.llmServiceManager.getCurrentProviderName();
             
             if (isAvailable) {
-                this.statusBarItem.text = '$(check) Ollama Connected';
+                this.statusBarItem.text = `$(check) ${providerName} Connected`;
                 this.statusBarItem.color = undefined;
                 this.statusBarItem.backgroundColor = undefined;
-                this.statusBarItem.tooltip = 'Ollama service is running and available';
+                this.statusBarItem.tooltip = `${providerName} service is running and available`;
             } else {
-                this.statusBarItem.text = '$(warning) Ollama Disconnected';
+                this.statusBarItem.text = `$(warning) ${providerName} Disconnected`;
                 this.statusBarItem.color = new vscode.ThemeColor('statusBarItem.warningForeground');
                 this.statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.warningBackground');
-                this.statusBarItem.tooltip = 'Ollama service is not available. Click to check connection.';
+                this.statusBarItem.tooltip = `${providerName} service is not available. Click to check connection.`;
             }
         } catch (error) {
-            this.statusBarItem.text = '$(error) Ollama Error';
+            const providerName = this.llmServiceManager.getCurrentProviderName();
+            this.statusBarItem.text = `$(error) ${providerName} Error`;
             this.statusBarItem.color = new vscode.ThemeColor('statusBarItem.errorForeground');
             this.statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.errorBackground');
-            this.statusBarItem.tooltip = 'Error checking Ollama service. Click for help.';
+            this.statusBarItem.tooltip = `Error checking ${providerName} service. Click for help.`;
         }
     }
 
     public async handleStatusBarClick() {
-        const isAvailable = await this.ollamaService.isServiceAvailable();
+        const isAvailable = await this.llmServiceManager.isServiceAvailable();
+        const providerName = this.llmServiceManager.getCurrentProviderName();
         
         if (!isAvailable) {
             const action = await vscode.window.showWarningMessage(
-                'Ollama service is not available. Would you like to see troubleshooting help?',
+                `${providerName} service is not available. Would you like to see troubleshooting help?`,
                 'Help',
                 'Check Again',
                 'Dismiss'
@@ -79,12 +82,12 @@ export class StatusBarManager {
         } else {
             // 显示连接信息
             try {
-                const models = await this.ollamaService.getModels();
+                const models = await this.llmServiceManager.getModels();
                 vscode.window.showInformationMessage(
-                    `✅ Ollama is connected! Available models: ${models.length > 0 ? models.join(', ') : 'No models installed'}`
+                    `✅ ${providerName} is connected! Available models: ${models.length > 0 ? models.join(', ') : 'No models installed'}`
                 );
             } catch (error) {
-                vscode.window.showInformationMessage('✅ Ollama is connected!');
+                vscode.window.showInformationMessage(`✅ ${providerName} is connected!`);
             }
         }
     }

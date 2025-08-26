@@ -1,50 +1,75 @@
 import * as assert from 'assert';
 import * as vscode from 'vscode';
 import { CompletionManager } from '../services/completion/CompletionManager';
-import { OllamaService } from '../services/ollamaService';
+import { LLMServiceManager } from '../services/LLMServiceManager';
+
+// Mock LLMServiceManager
+class MockLLMServiceManager {
+    public getCurrentService() {
+        return {
+            isServiceAvailable: async () => true,
+            getModels: async () => ['llama2', 'codellama'],
+            generate: async (model: string, prompt: string) => 'mock completion',
+            chat: async (model: string, prompt: string, session: any) => 'mock chat response',
+            chatStream: async (model: string, prompt: string, session: any, onChunk: any, onComplete: any, onError: any) => {
+                onChunk('mock stream response');
+                onComplete();
+            }
+        };
+    }
+
+    public getModels() {
+        return Promise.resolve(['llama2', 'codellama']);
+    }
+
+    public isServiceAvailable() {
+        return Promise.resolve(true);
+    }
+
+    public generate(model: string, prompt: string) {
+        return Promise.resolve('mock completion');
+    }
+
+    public chat(model: string, prompt: string, session: any) {
+        return Promise.resolve('mock chat response');
+    }
+
+    public chatStream(model: string, prompt: string, session: any, onChunk: any, onComplete: any, onError: any) {
+        onChunk('mock stream response');
+        onComplete();
+        return Promise.resolve();
+    }
+}
 
 suite('CompletionManager Test Suite', () => {
     let completionManager: CompletionManager;
-    let mockOllamaService: OllamaService;
-    let mockContext: any;
+    let mockContext: Partial<vscode.ExtensionContext>;
+    let mockLLMServiceManager: MockLLMServiceManager;
 
     setup(() => {
-        // 创建模拟的OllamaService
-        mockOllamaService = new OllamaService();
+        mockLLMServiceManager = new MockLLMServiceManager();
         
-        // 创建模拟的扩展上下文
         mockContext = {
             subscriptions: [],
-            globalState: {
-                get: () => undefined,
-                update: () => Promise.resolve(),
-                keys: () => []
-            },
             workspaceState: {
                 get: () => undefined,
                 update: () => Promise.resolve(),
                 keys: () => []
             },
-            extensionUri: vscode.Uri.file(__dirname),
-            asAbsolutePath: (relativePath: string) => relativePath,
-            storagePath: '',
-            globalStoragePath: '',
-            logPath: '',
-            extensionPath: '',
-            environmentVariableCollection: {} as any,
-            extensionMode: vscode.ExtensionMode.Test,
-            secrets: {
-                get: () => Promise.resolve(undefined),
-                store: () => Promise.resolve(),
-                delete: () => Promise.resolve()
+            globalState: {
+                get: () => undefined,
+                update: () => Promise.resolve(),
+                keys: () => [],
+                setKeysForSync: () => {}
             },
+            extensionPath: '',
+            extensionUri: vscode.Uri.file(''),
             storageUri: vscode.Uri.file(''),
             globalStorageUri: vscode.Uri.file(''),
-            logUri: vscode.Uri.file(''),
-            extensionRuntime: 'node' as any
+            logUri: vscode.Uri.file('')
         };
 
-        completionManager = new CompletionManager(mockOllamaService);
+        completionManager = new CompletionManager(mockLLMServiceManager as any);
     });
 
     teardown(() => {
@@ -53,7 +78,9 @@ suite('CompletionManager Test Suite', () => {
             completionManager.dispose();
         }
         // 重置订阅
-        mockContext.subscriptions = [];
+        if (mockContext.subscriptions) {
+            mockContext.subscriptions.length = 0;
+        }
     });
 
     test('CompletionManager should be created successfully', () => {
@@ -86,12 +113,13 @@ suite('CompletionManager Test Suite', () => {
             // 忽略命令已存在的错误
         }
         
-        const initialSubscriptions = mockContext.subscriptions.length;
+        const initialSubscriptions = mockContext.subscriptions?.length || 0;
         
         completionManager.dispose();
         
         // 检查是否清理了订阅（在测试环境中可能没有订阅需要清理）
-        assert.ok(mockContext.subscriptions.length <= initialSubscriptions, 'Should not add subscriptions after dispose');
+        const finalSubscriptions = mockContext.subscriptions?.length || 0;
+        assert.ok(finalSubscriptions <= initialSubscriptions, 'Should not add subscriptions after dispose');
     });
 
     test('should respect enableCodeCompletion setting', () => {

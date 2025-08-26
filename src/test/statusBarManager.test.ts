@@ -1,11 +1,26 @@
 import * as assert from 'assert';
 import * as vscode from 'vscode';
 import { StatusBarManager } from '../services/statusBarManager';
-import { OllamaService } from '../services/ollamaService';
+import { LLMServiceManager } from '../services/LLMServiceManager';
+
+// Mock LLMServiceManager
+class MockLLMServiceManager {
+    public getCurrentProviderName() {
+        return 'ollama';
+    }
+
+    public isServiceAvailable() {
+        return Promise.resolve(true);
+    }
+
+    public getModels() {
+        return Promise.resolve(['llama2', 'codellama']);
+    }
+}
 
 suite('StatusBarManager Test Suite', () => {
     let statusBarManager: StatusBarManager;
-    let mockOllamaService: OllamaService;
+    let mockLLMServiceManager: MockLLMServiceManager;
 
     // 设置测试超时时间
     suiteSetup(function() {
@@ -13,8 +28,8 @@ suite('StatusBarManager Test Suite', () => {
     });
 
     setup(() => {
-        mockOllamaService = new OllamaService();
-        statusBarManager = new StatusBarManager(mockOllamaService);
+        mockLLMServiceManager = new MockLLMServiceManager();
+        statusBarManager = new StatusBarManager(mockLLMServiceManager as any);
     });
 
     teardown(() => {
@@ -30,8 +45,8 @@ suite('StatusBarManager Test Suite', () => {
     test('should handle status bar click when service is available', async function() {
         this.timeout(30000); // 30秒超时
         // 模拟服务可用的情况
-        const originalIsServiceAvailable = mockOllamaService.isServiceAvailable;
-        mockOllamaService.isServiceAvailable = async () => true;
+        const originalIsServiceAvailable = mockLLMServiceManager.isServiceAvailable;
+        mockLLMServiceManager.isServiceAvailable = async () => true;
 
         try {
             // 应该不会抛出异常
@@ -39,7 +54,7 @@ suite('StatusBarManager Test Suite', () => {
             assert.ok(true, 'Should handle status bar click when service is available');
         } finally {
             // 恢复原始方法
-            mockOllamaService.isServiceAvailable = originalIsServiceAvailable;
+            mockLLMServiceManager.isServiceAvailable = originalIsServiceAvailable;
         }
     });
 
@@ -65,11 +80,11 @@ suite('StatusBarManager Test Suite', () => {
     test('should handle getModels when service is available', async function() {
         this.timeout(30000); // 30秒超时
         // 模拟服务可用的情况
-        const originalIsServiceAvailable = mockOllamaService.isServiceAvailable;
-        const originalGetModels = mockOllamaService.getModels;
+        const originalIsServiceAvailable = mockLLMServiceManager.isServiceAvailable;
+        const originalGetModels = mockLLMServiceManager.getModels;
         
-        mockOllamaService.isServiceAvailable = async () => true;
-        mockOllamaService.getModels = async () => ['llama2', 'tinyllama'];
+        mockLLMServiceManager.isServiceAvailable = async () => true;
+        mockLLMServiceManager.getModels = async () => ['llama2', 'tinyllama'];
 
         try {
             // 应该不会抛出异常
@@ -77,19 +92,19 @@ suite('StatusBarManager Test Suite', () => {
             assert.ok(true, 'Should handle getModels when service is available');
         } finally {
             // 恢复原始方法
-            mockOllamaService.isServiceAvailable = originalIsServiceAvailable;
-            mockOllamaService.getModels = originalGetModels;
+            mockLLMServiceManager.isServiceAvailable = originalIsServiceAvailable;
+            mockLLMServiceManager.getModels = originalGetModels;
         }
     });
 
     test('should handle getModels errors gracefully', async function() {
         this.timeout(30000); // 30秒超时
         // 模拟服务可用但getModels失败的情况
-        const originalIsServiceAvailable = mockOllamaService.isServiceAvailable;
-        const originalGetModels = mockOllamaService.getModels;
+        const originalIsServiceAvailable = mockLLMServiceManager.isServiceAvailable;
+        const originalGetModels = mockLLMServiceManager.getModels;
         
-        mockOllamaService.isServiceAvailable = async () => true;
-        mockOllamaService.getModels = async () => { throw new Error('Models fetch failed'); };
+        mockLLMServiceManager.isServiceAvailable = async () => true;
+        mockLLMServiceManager.getModels = async () => { throw new Error('Models fetch failed'); };
 
         try {
             // 应该不会抛出异常
@@ -97,8 +112,8 @@ suite('StatusBarManager Test Suite', () => {
             assert.ok(true, 'Should handle getModels errors gracefully');
         } finally {
             // 恢复原始方法
-            mockOllamaService.isServiceAvailable = originalIsServiceAvailable;
-            mockOllamaService.getModels = originalGetModels;
+            mockLLMServiceManager.isServiceAvailable = originalIsServiceAvailable;
+            mockLLMServiceManager.getModels = originalGetModels;
         }
     });
 
@@ -123,9 +138,9 @@ suite('StatusBarManager Test Suite', () => {
 
     test('should handle OllamaService integration', () => {
         // 测试与OllamaService的集成
-        assert.ok(mockOllamaService, 'OllamaService should be available');
-        assert.ok(typeof mockOllamaService.isServiceAvailable === 'function', 'OllamaService should have isServiceAvailable method');
-        assert.ok(typeof mockOllamaService.getModels === 'function', 'OllamaService should have getModels method');
+        assert.ok(mockLLMServiceManager, 'OllamaService should be available');
+        assert.ok(typeof mockLLMServiceManager.isServiceAvailable === 'function', 'OllamaService should have isServiceAvailable method');
+        assert.ok(typeof mockLLMServiceManager.getModels === 'function', 'OllamaService should have getModels method');
     });
 
     test('should handle error handler integration', () => {
