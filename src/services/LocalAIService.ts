@@ -308,5 +308,21 @@ export class LocalAIService implements ILLMService {
             return null;
         }
     }
+
+        public async getPreferredModel(): Promise<string | null> {
+        try {
+            const models = await this.getModels();
+            if (!models || models.length === 0) {
+                return null;
+            }
+            // LocalAI 可以按你的需求决定默认选择哪个模型
+            // 这里简单地返回第一个
+            return models[0];
+        } catch (err) {
+            console.warn('Failed to get preferred model from LocalAI:', err);
+            return null;
+        }
+    }
+
 }
 

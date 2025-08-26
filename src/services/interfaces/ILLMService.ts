@@ -20,6 +20,8 @@ export interface ILLMService {
      */
     getModels(): Promise<string[]>;
 
+    getPreferredModel(): Promise<string | null>;
+
     /**
      * 流式聊天请求
      */

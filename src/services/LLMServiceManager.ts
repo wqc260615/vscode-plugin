@@ -168,6 +168,29 @@ export class LLMServiceManager {
     }
 
     /**
+     * 获取首选模型（自动选择最佳可用模型）
+     */
+    public async getPreferredModel(): Promise<string> {
+        const service = this.getCurrentService();
+        if (!service) {
+            throw new Error('No LLM service available');
+        }
+
+        // 注意：需要 ILLMService 接口里定义 getPreferredModel()
+        if (typeof (service as any).getPreferredModel === 'function') {
+            return await (service as any).getPreferredModel();
+        }
+
+        // 如果某些 service 没有实现，退化为第一个可用模型
+        const models = await service.getModels();
+        if (models.length === 0) {
+            throw new Error('No models available');
+        }
+        return models[0];
+    }
+
+
+    /**
      * 流式聊天请求
      */
     public async chatStream(
