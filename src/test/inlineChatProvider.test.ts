@@ -1,18 +1,33 @@
 import * as assert from 'assert';
 import * as vscode from 'vscode';
 import { InlineChatProvider } from '../services/InlineChatProvider';
-import { OllamaService } from '../services/ollamaService';
 import { ProjectContextProcessor } from '../services/projectContextProcessor';
+import { LLMServiceManager } from '../services/LLMServiceManager';
+
+// Mock LLMServiceManager
+class MockLLMServiceManager {
+    public getModels() {
+        return Promise.resolve(['llama2', 'codellama']);
+    }
+
+    public generate(model: string, prompt: string) {
+        return Promise.resolve('mock generated code');
+    }
+
+    public isServiceAvailable() {
+        return Promise.resolve(true);
+    }
+}
 
 suite('InlineChatProvider Test Suite', () => {
     let inlineChatProvider: InlineChatProvider;
-    let mockOllamaService: OllamaService;
     let mockContextProcessor: ProjectContextProcessor;
+    let mockLLMServiceManager: MockLLMServiceManager;
 
     setup(() => {
-        mockOllamaService = new OllamaService();
+        mockLLMServiceManager = new MockLLMServiceManager();
         mockContextProcessor = new ProjectContextProcessor();
-        inlineChatProvider = new InlineChatProvider(mockOllamaService, mockContextProcessor);
+        inlineChatProvider = new InlineChatProvider(mockLLMServiceManager as any, mockContextProcessor);
     });
 
     teardown(() => {
@@ -98,9 +113,9 @@ suite('InlineChatProvider Test Suite', () => {
 
     test('should handle OllamaService integration', () => {
         // 测试与OllamaService的集成
-        assert.ok(mockOllamaService, 'OllamaService should be available');
-        assert.ok(typeof mockOllamaService.getModels === 'function', 'OllamaService should have getModels method');
-        assert.ok(typeof mockOllamaService.generate === 'function', 'OllamaService should have generate method');
+        assert.ok(mockLLMServiceManager, 'OllamaService should be available');
+        assert.ok(typeof mockLLMServiceManager.getModels === 'function', 'OllamaService should have getModels method');
+        assert.ok(typeof mockLLMServiceManager.generate === 'function', 'OllamaService should have generate method');
     });
 
     test('should handle ProjectContextProcessor integration', () => {

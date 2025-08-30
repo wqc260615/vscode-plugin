@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { ChatSession, ChatMessage } from './sessionManager';
 import { LLMErrorHandler, ErrorType, ResponseCache } from './errorHandler';
+import { ILLMService, ILLMServiceConfig } from './interfaces/ILLMService';
 import { PerformanceMonitor } from './performanceMonitor';
 
 export interface OllamaModel {
@@ -15,15 +16,16 @@ export interface OllamaResponse {
     error?: string;
 }
 
-export class OllamaService {
+export class OllamaService implements ILLMService {
+    public readonly providerName: string = 'ollama';
     private baseUrl: string;
     private errorHandler: LLMErrorHandler;
     private cache: ResponseCache;
     private performanceMonitor: PerformanceMonitor;
     private connectionChecked: boolean = false;
 
-    constructor() {
-        this.baseUrl = this.getOllamaUrl();
+    constructor(config?: ILLMServiceConfig) {
+        this.baseUrl = config?.baseUrl || this.getOllamaUrl();
         this.errorHandler = LLMErrorHandler.getInstance();
         this.cache = new ResponseCache();
         this.performanceMonitor = PerformanceMonitor.getInstance();

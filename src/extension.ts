@@ -3,12 +3,13 @@ import { AIChatViewProvider } from './panels/AIChatViewProvider';
 import { ContextTreeProvider, AIAssistantCommands } from './providers/TreeViewProviders';
 import { SessionManager } from './services/sessionManager';
 import { ProjectContextProcessor } from './services/projectContextProcessor';
-import { OllamaService } from './services/ollamaService';
+import { LLMServiceManager } from './services/LLMServiceManager';
 import { CompletionManager } from './services/completion/CompletionManager';
 import { InlineChatProvider } from './services/InlineChatProvider';
 import { StatusBarManager } from './services/statusBarManager';
 import { ExtensibleFeatureManager } from './services/ExtensibleFeatureManager';
 import { getDefaultFeatures } from './services/DefaultExtensibleFeatures';
+import { LLMProviderCommands } from './services/LLMProviderCommands';
 
 export function activate(context: vscode.ExtensionContext) {
     console.log('AI Assistant extension is now active!');
@@ -16,13 +17,13 @@ export function activate(context: vscode.ExtensionContext) {
     // 初始化服务
     const sessionManager = new SessionManager(context);
     const contextProcessor = new ProjectContextProcessor();
-    const ollamaService = new OllamaService();
+    const llmServiceManager = LLMServiceManager.getInstance();
 
     // 初始化项目上下文
     contextProcessor.initProjectContext();
 
     // 初始化代码补全功能
-    const completionManager = new CompletionManager(ollamaService);
+    const completionManager = new CompletionManager(llmServiceManager);
     completionManager.initialize(context);
 
     // 注册 Inline Completion Provider
@@ -48,10 +49,10 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(inlineCompletionDisposable);
 
     // 初始化inline chat功能
-    const inlineChatProvider = new InlineChatProvider(ollamaService, contextProcessor);
+    const inlineChatProvider = new InlineChatProvider(llmServiceManager, contextProcessor);
 
     // 初始化状态栏管理器
-    const statusBarManager = new StatusBarManager(ollamaService);
+    const statusBarManager = new StatusBarManager(llmServiceManager);
 
     // 初始化可扩展功能管理器
     const extensibleFeatureManager = ExtensibleFeatureManager.getInstance();
@@ -65,6 +66,10 @@ export function activate(context: vscode.ExtensionContext) {
     defaultFeatures.contextMenus.forEach(contextMenu => {
         extensibleFeatureManager.registerContextMenuItem(contextMenu);
     });
+
+    // 注册LLM提供商管理命令
+    const llmProviderCommands = new LLMProviderCommands();
+    llmProviderCommands.registerCommands(context);
 
     // 创建树视图提供者
     const contextTreeProvider = new ContextTreeProvider(contextProcessor);

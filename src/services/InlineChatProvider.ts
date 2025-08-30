@@ -1,10 +1,10 @@
 import * as vscode from 'vscode';
-import { OllamaService } from './ollamaService';
+import { LLMServiceManager } from './LLMServiceManager';
 import { ProjectContextProcessor } from './projectContextProcessor';
 import { LLMErrorHandler } from './errorHandler';
 
 export class InlineChatProvider {
-    private ollamaService: OllamaService;
+    private llmServiceManager: LLMServiceManager;
     private contextProcessor: ProjectContextProcessor;
     private currentDecorationType: vscode.TextEditorDecorationType | null = null;
     private previewDecorationType: vscode.TextEditorDecorationType | null = null;
@@ -13,8 +13,8 @@ export class InlineChatProvider {
     private isGenerating: boolean = false;
     private errorHandler: LLMErrorHandler;
 
-    constructor(ollamaService: OllamaService, contextProcessor: ProjectContextProcessor) {
-        this.ollamaService = ollamaService;
+    constructor(llmServiceManager: LLMServiceManager, contextProcessor: ProjectContextProcessor) {
+        this.llmServiceManager = llmServiceManager;
         this.contextProcessor = contextProcessor;
         this.errorHandler = LLMErrorHandler.getInstance();
         
@@ -117,7 +117,7 @@ export class InlineChatProvider {
      */
     private async createInlineInput(context: string) {
         try {
-            const preferredModel = await this.ollamaService.getPreferredModel();
+            const preferredModel = await this.llmServiceManager.getPreferredModel();
             
             if (!this.currentEditor || !this.currentPosition) {
                 return;
@@ -498,7 +498,7 @@ Generate code that should be inserted at the <CURSOR> position. Return only the 
             this.showLoadingDecoration();
 
             // 生成代码
-            const generatedCode = await this.ollamaService.generate(model, fullPrompt);
+            const generatedCode = await this.llmServiceManager.generate(model, fullPrompt);
             
             // 清理生成的代码
             const cleanCode = this.cleanGeneratedCode(generatedCode);

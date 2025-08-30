@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { OllamaService } from '../ollamaService';
+import { LLMServiceManager } from '../LLMServiceManager';
 import { LLMErrorHandler } from '../errorHandler';
 
 export interface CompletionSuggestion {
@@ -12,14 +12,14 @@ export class CodeCompletionProvider implements vscode.InlineCompletionItemProvid
     private currentSuggestion: CompletionSuggestion | null = null;
     private completionTimeout: NodeJS.Timeout | null = null;
     private isGenerating: boolean = false;
-    private ollamaService: any;
+    private llmServiceManager: LLMServiceManager;
     private errorHandler: LLMErrorHandler;
 
     // 添加状态变化回调
     public onCompletionStateChanged: ((hasCompletion: boolean) => void) | null = null;
 
-    constructor(ollamaService: any) {
-        this.ollamaService = ollamaService;
+    constructor(llmServiceManager: LLMServiceManager) {
+        this.llmServiceManager = llmServiceManager;
         this.errorHandler = LLMErrorHandler.getInstance();
     }
 
@@ -53,8 +53,8 @@ export class CodeCompletionProvider implements vscode.InlineCompletionItemProvid
                 return null;
             }
 
-            // 从 Ollama 获取补全
-            const completion = await this.getCompletionFromOllama(codeContext, this.ollamaService);
+            // 从LLM服务获取补全
+            const completion = await this.getCompletionFromLLM(codeContext);
             if (!completion || completion.trim().length === 0) {
                 return null;
             }
@@ -190,7 +190,7 @@ export class CodeCompletionProvider implements vscode.InlineCompletionItemProvid
     /**
      * 请求代码补全
      */
-    public async requestCompletion(editor: vscode.TextEditor, ollamaService: any): Promise<void> {
+    public async requestCompletion(editor: vscode.TextEditor, llmServiceManager: LLMServiceManager): Promise<void> {
         // 如果正在生成，跳过
         if (this.isGenerating) {
             return;
@@ -205,14 +205,14 @@ export class CodeCompletionProvider implements vscode.InlineCompletionItemProvid
 
         // 设置防抖延迟
         this.completionTimeout = setTimeout(async () => {
-            await this.performCompletion(editor, ollamaService);
+            await this.performCompletion(editor, llmServiceManager);
         }, 500); // 500ms 防抖
     }
 
     /**
      * 执行实际的补全请求
      */
-    private async performCompletion(editor: vscode.TextEditor, ollamaService: any): Promise<void> {
+    private async performCompletion(editor: vscode.TextEditor, llmServiceManager: LLMServiceManager): Promise<void> {
         try {
             this.isGenerating = true;
 
@@ -222,7 +222,7 @@ export class CodeCompletionProvider implements vscode.InlineCompletionItemProvid
                 return;
             }
 
-            const completion = await this.getCompletionFromOllama(context, ollamaService);
+            const completion = await this.getCompletionFromLLM(context);
             if (completion && completion.trim().length > 0) {
                 this.showCompletion(editor, completion);
             }
@@ -280,19 +280,19 @@ export class CodeCompletionProvider implements vscode.InlineCompletionItemProvid
     }
 
     /**
-     * 从Ollama获取补全建议
+     * 从LLM获取补全建议
      */
-    private async getCompletionFromOllama(context: string, ollamaService: any): Promise<string> {
+    private async getCompletionFromLLM(context: string): Promise<string> {
         try {
             
-            // 检查Ollama服务是否可用
-            const isAvailable = await ollamaService.isServiceAvailable();
-            if (!isAvailable) {
+            // 获取LLM服务
+            const llmService = this.llmServiceManager.getCurrentService();
+            if (!llmService) {
                 return '';
             }
             
             // 获取首选模型
-            const preferredModel = await ollamaService.getPreferredModel();
+            const preferredModel = await llmService.getPreferredModel();
             if (!preferredModel) {
                 return '';
             }
@@ -314,7 +314,7 @@ Complete the code at <BLANK>:`;
 
             // 优先使用 generate 方法，如果失败则回退到 chat 方法
             try {
-                const response = await ollamaService.generate(preferredModel, prompt);
+                const response = await llmService.generate(preferredModel, prompt);
                 let completion = response.trim();
                 
                 // 清理响应，移除可能的代码块标记
@@ -329,10 +329,14 @@ Complete the code at <BLANK>:`;
                 // 回退到 chat API
                 // 创建一个临时会话对象
                 const tempSession = {
-                    messages: []
+                    id: 'temp',
+                    name: 'Temporary Session',
+                    messages: [],
+                    createdAt: new Date(),
+                    updatedAt: new Date()
                 };
 
-                const chatResponse = await ollamaService.chat(preferredModel, prompt, tempSession);
+                const chatResponse = await llmService.chat(preferredModel, prompt, tempSession);
                 let completion = chatResponse.trim();
                 
                 // 清理并格式化补全文本

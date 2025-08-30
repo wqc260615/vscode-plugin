@@ -89,6 +89,30 @@
         "icon": "$(comment-discussion)"
       },
       {
+        "command": "aiAssistant.switchLLMProvider",
+        "title": "Switch LLM Provider",
+        "category": "AI Assistant",
+        "icon": "$(server)"
+      },
+      {
+        "command": "aiAssistant.showLLMConfig",
+        "title": "Show LLM Configuration",
+        "category": "AI Assistant",
+        "icon": "$(gear)"
+      },
+      {
+        "command": "aiAssistant.testLLMConnection",
+        "title": "Test LLM Connection",
+        "category": "AI Assistant",
+        "icon": "$(check)"
+      },
+      {
+        "command": "aiAssistant.refreshLLMService",
+        "title": "Refresh LLM Service",
+        "category": "AI Assistant",
+        "icon": "$(refresh)"
+      },
+      {
         "command": "extension.inlineChat.enter",
         "title": "Inline Chat: Accept Input",
         "category": "AI Assistant",
@@ -230,15 +254,54 @@
       "type": "object",
       "title": "AI Assistant Configuration",
       "properties": {
+        "aiAssistant.llmProvider": {
+          "type": "string",
+          "enum": ["ollama", "localai"],
+          "default": "ollama",
+          "description": "LLM service provider to use"
+        },
         "aiAssistant.ollamaUrl": {
           "type": "string",
           "default": "http://localhost:11434",
           "description": "Ollama server URL"
         },
+        "aiAssistant.localaiUrl": {
+          "type": "string",
+          "default": "http://localhost:8080",
+          "description": "LocalAI server URL"
+        },
+        "aiAssistant.ollamaTimeout": {
+          "type": "number",
+          "default": 30000,
+          "minimum": 1000,
+          "maximum": 300000,
+          "description": "Ollama request timeout in milliseconds"
+        },
+        "aiAssistant.localaiTimeout": {
+          "type": "number",
+          "default": 30000,
+          "minimum": 1000,
+          "maximum": 300000,
+          "description": "LocalAI request timeout in milliseconds"
+        },
+        "aiAssistant.ollamaMaxRetries": {
+          "type": "number",
+          "default": 3,
+          "minimum": 0,
+          "maximum": 10,
+          "description": "Maximum number of retry attempts for Ollama"
+        },
+        "aiAssistant.localaiMaxRetries": {
+          "type": "number",
+          "default": 3,
+          "minimum": 0,
+          "maximum": 10,
+          "description": "Maximum number of retry attempts for LocalAI"
+        },
         "aiAssistant.defaultModel": {
           "type": "string",
           "default": "",
-          "description": "Default Ollama model to use (leave empty to auto-select first available model)"
+          "description": "Default LLM model to use (leave empty to auto-select first available model)"
         },
         "aiAssistant.enableDataCollection": {
           "type": "boolean",
