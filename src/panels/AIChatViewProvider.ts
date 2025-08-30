@@ -182,7 +182,7 @@ export class AIChatViewProvider implements vscode.WebviewViewProvider {
 
             // 构建完整提示词
             const fullPrompt = await this.contextProcessor.generateFullPrompt(message);
-            
+            console.log(fullPrompt);
             // 显示AI正在思考
             this._view.webview.postMessage({
                 type: 'aiThinking',
