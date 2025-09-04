@@ -45,7 +45,7 @@ export class SessionManager {
             this.sessions.delete(sessionId);
             if (this.activeSessionId === sessionId) {
                 this.activeSessionId = null;
-                // 如果还有其他会话，设置第一个为活跃会话
+                // If there are other sessions, set the first one as active
                 const remainingSessions = Array.from(this.sessions.keys());
                 if (remainingSessions.length > 0) {
                     this.activeSessionId = remainingSessions[0];
@@ -128,7 +128,7 @@ export class SessionManager {
             const savedSessions = this.context.globalState.get<{[key: string]: any}>('aiAssistant.sessions', {});
             const savedActiveSessionId = this.context.globalState.get<string>('aiAssistant.activeSessionId', '');
 
-            // 转换保存的数据为ChatSession对象
+            // Convert saved data to ChatSession objects
             for (const [id, data] of Object.entries(savedSessions)) {
                 const session: ChatSession = {
                     id: data.id,
@@ -143,25 +143,25 @@ export class SessionManager {
                 this.sessions.set(id, session);
             }
 
-            // 恢复活跃会话
+            // Restore active session
             if (savedActiveSessionId && this.sessions.has(savedActiveSessionId)) {
                 this.activeSessionId = savedActiveSessionId;
             }
 
-            // 如果没有会话，创建一个默认会话
+            // If there are no sessions, create a default session
             if (this.sessions.size === 0) {
                 this.createNewSession('Default Session');
             }
         } catch (error) {
             console.error('Error loading sessions:', error);
-            // 如果加载失败，创建默认会话
+            // If loading fails, create a default session
             this.createNewSession('Default Session');
         }
     }
 
     private saveSessions(): void {
         try {
-            // 将sessions Map转换为普通对象以便保存
+            // Convert sessions Map to a plain object for saving
             const sessionsObj: {[key: string]: any} = {};
             for (const [id, session] of this.sessions) {
                 sessionsObj[id] = {

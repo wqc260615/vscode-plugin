@@ -23,7 +23,7 @@ export class AIChatViewProvider implements vscode.WebviewViewProvider {
         this.contextProcessor = new ProjectContextProcessor();
         this.errorHandler = LLMErrorHandler.getInstance();
         
-        // 初始化项目上下文
+        // Initialize project context
         this.contextProcessor.initProjectContext();
     }
 
@@ -41,12 +41,12 @@ export class AIChatViewProvider implements vscode.WebviewViewProvider {
 
         webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
 
-        // 监听来自webview的消息
+        // Listen for messages from the webview
         webviewView.webview.onDidReceiveMessage(async (data) => {
             await this._handleMessage(data);
         });
 
-        // 加载初始数据
+        // Load initial data
         this._loadInitialData();
     }
 
@@ -87,7 +87,7 @@ export class AIChatViewProvider implements vscode.WebviewViewProvider {
             return;
         }
 
-        // 加载会话列表
+        // Load session list
         const sessions = this.sessionManager.getAllSessions();
         const activeSession = this.sessionManager.getActiveSession();
         
@@ -103,7 +103,7 @@ export class AIChatViewProvider implements vscode.WebviewViewProvider {
             }
         });
 
-        // 加载当前会话的消息
+        // Load messages for the current session
         if (activeSession) {
             this._view.webview.postMessage({
                 type: 'messagesLoaded',
@@ -111,7 +111,7 @@ export class AIChatViewProvider implements vscode.WebviewViewProvider {
             });
         }
 
-        // 加载模型列表
+        // Load model list
         await this._loadModels();
     }
 
@@ -151,7 +151,7 @@ export class AIChatViewProvider implements vscode.WebviewViewProvider {
         const { message } = data;
         let { model } = data;
         
-        // 如果没有指定模型或模型不可用，使用首选模型
+        // If no model specified or unavailable, use the preferred model
         if (!model) {
             model = await this.ollamaService.getPreferredModel();
         }
@@ -164,10 +164,10 @@ export class AIChatViewProvider implements vscode.WebviewViewProvider {
         }
 
         try {
-            // 添加用户消息到会话
+            // Add user message to session
             this.sessionManager.addMessage(activeSession.id, message, true);
             
-            // 更新UI显示用户消息
+            // Update UI to show user message
             this._view.webview.postMessage({
                 type: 'messageAdded',
                 data: { 
@@ -180,10 +180,10 @@ export class AIChatViewProvider implements vscode.WebviewViewProvider {
                 }
             });
 
-            // 构建完整提示词
+            // Build full prompt
             const fullPrompt = await this.contextProcessor.generateFullPrompt(message);
             
-            // 显示AI正在思考
+            // Show AI thinking state
             this._view.webview.postMessage({
                 type: 'aiThinking',
                 data: { thinking: true }
@@ -191,13 +191,13 @@ export class AIChatViewProvider implements vscode.WebviewViewProvider {
 
             let responseContent = '';
             
-            // 调用Ollama API（流式响应） - 传递用户操作开始时间
+            // Call Ollama API (streaming) - pass the user action start time
             await this.ollamaService.chatStream(
                 model,
                 fullPrompt,
                 activeSession,
                 (chunk: string) => {
-                    // 处理流式响应
+                    // Handle streaming response
                     responseContent += chunk;
                     this._view?.webview.postMessage({
                         type: 'aiResponse',
@@ -205,7 +205,7 @@ export class AIChatViewProvider implements vscode.WebviewViewProvider {
                     });
                 },
                 () => {
-                    // 响应完成
+                    // Response completed
                     this.sessionManager.addMessage(activeSession.id, responseContent, false);
                     this._view?.webview.postMessage({
                         type: 'aiResponse',
@@ -217,7 +217,7 @@ export class AIChatViewProvider implements vscode.WebviewViewProvider {
                     });
                 },
                 (error: Error) => {
-                    // 处理错误
+                    // Handle error
                     this._view?.webview.postMessage({
                         type: 'error',
                         data: { message: 'Error: ' + error.message }
@@ -227,7 +227,7 @@ export class AIChatViewProvider implements vscode.WebviewViewProvider {
                         data: { thinking: false }
                     });
                 },
-                userActionStartTime // 传递用户操作开始时间
+                userActionStartTime // Pass user action start time
             );
 
         } catch (error) {
@@ -255,7 +255,7 @@ export class AIChatViewProvider implements vscode.WebviewViewProvider {
             }
         });
 
-        // 清空消息显示
+        // Clear messages display
         this._view.webview.postMessage({
             type: 'messagesLoaded',
             data: { messages: [] }
@@ -273,7 +273,7 @@ export class AIChatViewProvider implements vscode.WebviewViewProvider {
                 data: { sessionId }
             });
 
-            // 如果删除的是当前活跃会话，加载新的活跃会话
+            // If the deleted session was active, load the new active session
             const activeSession = this.sessionManager.getActiveSession();
             if (activeSession) {
                 this._view.webview.postMessage({

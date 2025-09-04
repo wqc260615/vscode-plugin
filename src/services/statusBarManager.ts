@@ -12,7 +12,7 @@ export class StatusBarManager {
         this.llmServiceManager = llmServiceManager;
         this.errorHandler = LLMErrorHandler.getInstance();
         
-        // 创建状态栏项
+        // Create status bar item
         this.statusBarItem = vscode.window.createStatusBarItem(
             vscode.StatusBarAlignment.Left,
             100
@@ -20,15 +20,15 @@ export class StatusBarManager {
         this.statusBarItem.command = 'aiAssistant.checkConnection';
         this.statusBarItem.show();
         
-        // 启动定期检查
+        // Start periodic checks
         this.startPeriodicCheck();
         
-        // 立即检查一次
+        // Run an immediate check
         this.checkStatus();
     }
 
     private startPeriodicCheck() {
-        // 每30秒检查一次连接状态
+        // Check connection status every 30 seconds
         this.checkInterval = setInterval(() => {
             this.checkStatus();
         }, 30000);
@@ -80,7 +80,7 @@ export class StatusBarManager {
                     break;
             }
         } else {
-            // 显示连接信息
+            // Show connection information
             try {
                 const models = await this.llmServiceManager.getModels();
                 vscode.window.showInformationMessage(

@@ -17,7 +17,7 @@ export class ExtensibleFeatureManager {
     }
 
     /**
-     * 注册快捷键命令
+     * Register shortcut command
      */
     public registerShortcutCommand(command: IShortcutCommand): void {
         this.shortcutCommands.set(command.id, command);
@@ -25,7 +25,7 @@ export class ExtensibleFeatureManager {
     }
 
     /**
-     * 注册上下文菜单项
+     * Register context menu item
      */
     public registerContextMenuItem(item: IContextMenuItem): void {
         this.contextMenuItems.set(item.id, item);
@@ -33,21 +33,21 @@ export class ExtensibleFeatureManager {
     }
 
     /**
-     * 获取所有快捷键命令
+     * Get all shortcut commands
      */
     public getShortcutCommands(): IShortcutCommand[] {
         return Array.from(this.shortcutCommands.values());
     }
 
     /**
-     * 获取所有上下文菜单项
+     * Get all context menu items
      */
     public getContextMenuItems(): IContextMenuItem[] {
         return Array.from(this.contextMenuItems.values());
     }
 
     /**
-     * 启用/禁用功能
+     * Enable/disable feature
      */
     public toggleFeature(id: string, enabled: boolean): void {
         const shortcut = this.shortcutCommands.get(id);
@@ -65,7 +65,7 @@ export class ExtensibleFeatureManager {
     }
 
     /**
-     * 清理所有注册
+     * Clean up all registrations
      */
     public dispose(): void {
         this.disposables.forEach(disposable => disposable.dispose());
@@ -95,13 +95,13 @@ export class ExtensibleFeatureManager {
     }
 
     private updateShortcutRegistration(command: IShortcutCommand): void {
-        // 重新注册快捷键
+        // Re-register shortcut
         this.disposables = this.disposables.filter(d => d.dispose);
         this.registerCommand(command);
     }
 
     private updateContextMenuRegistration(item: IContextMenuItem): void {
-        // 重新注册上下文菜单
+        // Re-register context menu
         this.disposables = this.disposables.filter(d => d.dispose);
         this.registerContextMenu(item);
     }

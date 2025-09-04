@@ -22,9 +22,9 @@ suite('StatusBarManager Test Suite', () => {
     let statusBarManager: StatusBarManager;
     let mockLLMServiceManager: MockLLMServiceManager;
 
-    // 设置测试超时时间
+    // Set test timeout
     suiteSetup(function() {
-        this.timeout(30000); // 30秒超时
+        this.timeout(30000); // 30 seconds timeout
     });
 
     setup(() => {
@@ -43,31 +43,31 @@ suite('StatusBarManager Test Suite', () => {
     });
 
     test('should handle status bar click when service is available', async function() {
-        this.timeout(30000); // 30秒超时
-        // 模拟服务可用的情况
+        this.timeout(30000); // 30 seconds timeout
+        // Simulate service available case
         const originalIsServiceAvailable = mockLLMServiceManager.isServiceAvailable;
         mockLLMServiceManager.isServiceAvailable = async () => true;
 
         try {
-            // 应该不会抛出异常
+            // Should not throw
             await statusBarManager.handleStatusBarClick();
             assert.ok(true, 'Should handle status bar click when service is available');
         } finally {
-            // 恢复原始方法
+            // Restore original method
             mockLLMServiceManager.isServiceAvailable = originalIsServiceAvailable;
         }
     });
 
     test('should handle status bar click when service is unavailable', async function() {
-        this.timeout(30000); // 30秒超时
+        this.timeout(30000); // 30 seconds timeout
         
-        // 直接测试方法存在性，而不是实际调用
-        // 这样可以避免复杂的异步操作和潜在的无限等待
+        // Test method existence directly instead of actual invocation
+        // This avoids complex async operations and potential indefinite waits
         assert.ok(typeof statusBarManager.handleStatusBarClick === 'function', 'handleStatusBarClick method should exist');
         
-        // 测试基本功能：确保方法不会抛出同步错误
+        // Basic check: ensure no synchronous error is thrown
         try {
-            // 创建一个简单的模拟Promise，避免实际调用
+            // Create a simple mock Promise to avoid real calls
             const mockPromise = Promise.resolve();
             assert.ok(mockPromise instanceof Promise, 'Should handle async operations');
         } catch (error) {
@@ -79,7 +79,7 @@ suite('StatusBarManager Test Suite', () => {
 
     test('should handle getModels when service is available', async function() {
         this.timeout(30000); // 30秒超时
-        // 模拟服务可用的情况
+        // Simulate service available case
         const originalIsServiceAvailable = mockLLMServiceManager.isServiceAvailable;
         const originalGetModels = mockLLMServiceManager.getModels;
         
@@ -87,11 +87,11 @@ suite('StatusBarManager Test Suite', () => {
         mockLLMServiceManager.getModels = async () => ['llama2', 'tinyllama'];
 
         try {
-            // 应该不会抛出异常
+            // Should not throw
             await statusBarManager.handleStatusBarClick();
             assert.ok(true, 'Should handle getModels when service is available');
         } finally {
-            // 恢复原始方法
+            // Restore original methods
             mockLLMServiceManager.isServiceAvailable = originalIsServiceAvailable;
             mockLLMServiceManager.getModels = originalGetModels;
         }
@@ -118,7 +118,7 @@ suite('StatusBarManager Test Suite', () => {
     });
 
     test('should handle dispose method', () => {
-        // 测试dispose方法
+        // Test dispose method
         try {
             statusBarManager.dispose();
             assert.ok(true, 'Should dispose without errors');
@@ -128,7 +128,7 @@ suite('StatusBarManager Test Suite', () => {
     });
 
     test('should handle multiple dispose calls', () => {
-        // 多次调用dispose应该不会出错
+        // Multiple dispose calls should not error
         statusBarManager.dispose();
         statusBarManager.dispose();
         statusBarManager.dispose();
@@ -137,135 +137,135 @@ suite('StatusBarManager Test Suite', () => {
     });
 
     test('should handle OllamaService integration', () => {
-        // 测试与OllamaService的集成
+        // Test integration with OllamaService
         assert.ok(mockLLMServiceManager, 'OllamaService should be available');
         assert.ok(typeof mockLLMServiceManager.isServiceAvailable === 'function', 'OllamaService should have isServiceAvailable method');
         assert.ok(typeof mockLLMServiceManager.getModels === 'function', 'OllamaService should have getModels method');
     });
 
     test('should handle error handler integration', () => {
-        // 测试错误处理器的集成
-        // 这个测试主要验证类结构正确
+        // Test error handler integration
+        // This test mainly verifies class structure
         assert.ok(statusBarManager, 'StatusBarManager should be properly initialized');
     });
 
     test('should handle status checking', () => {
-        // 测试状态检查功能
-        // 由于这是一个私有方法，我们主要测试类的基本功能
+        // Test status checking functionality
+        // Since this is private, we just test basic class functionality
         assert.ok(statusBarManager, 'StatusBarManager should handle status checking');
     });
 
     test('should handle periodic status updates', () => {
-        // 测试定期状态更新功能
-        // 由于这是一个私有方法，我们主要测试类的基本功能
+        // Test periodic status updates
+        // Since this is private, we just test basic class functionality
         assert.ok(statusBarManager, 'StatusBarManager should handle periodic status updates');
     });
 
     test('should handle status bar item creation', () => {
-        // 测试状态栏项创建功能
-        // 由于这是一个私有方法，我们主要测试类的基本功能
+        // Test status bar item creation
+        // Since this is private, we just test basic class functionality
         assert.ok(statusBarManager, 'StatusBarManager should handle status bar item creation');
     });
 
     test('should handle status bar item updates', () => {
-        // 测试状态栏项更新功能
-        // 由于这是一个私有方法，我们主要测试类的基本功能
+        // Test status bar item updates
+        // Since this is private, we just test basic class functionality
         assert.ok(statusBarManager, 'StatusBarManager should handle status bar item updates');
     });
 
     test('should handle troubleshooting help display', () => {
-        // 测试故障排除帮助显示功能
-        // 由于这是一个私有方法，我们主要测试类的基本功能
+        // Test troubleshooting help display
+        // Since this is private, we just test basic class functionality
         assert.ok(statusBarManager, 'StatusBarManager should handle troubleshooting help display');
     });
 
     test('should handle WebView panel creation', () => {
-        // 测试WebView面板创建功能
-        // 由于这是一个私有方法，我们主要测试类的基本功能
+        // Test WebView panel creation
+        // Since this is private, we just test basic class functionality
         assert.ok(statusBarManager, 'StatusBarManager should handle WebView panel creation');
     });
 
     test('should handle HTML content generation', () => {
-        // 测试HTML内容生成功能
-        // 由于这是一个私有方法，我们主要测试类的基本功能
+        // Test HTML content generation
+        // Since this is private, we just test basic class functionality
         assert.ok(statusBarManager, 'StatusBarManager should handle HTML content generation');
     });
 
     test('should handle status bar item styling', () => {
-        // 测试状态栏项样式功能
-        // 由于这是一个私有方法，我们主要测试类的基本功能
+        // Test status bar item styling
+        // Since this is private, we just test basic class functionality
         assert.ok(statusBarManager, 'StatusBarManager should handle status bar item styling');
     });
 
     test('should handle status bar item positioning', () => {
-        // 测试状态栏项定位功能
-        // 由于这是一个私有方法，我们主要测试类的基本功能
+        // Test status bar item positioning
+        // Since this is private, we just test basic class functionality
         assert.ok(statusBarManager, 'StatusBarManager should handle status bar item positioning');
     });
 
     test('should handle status bar item commands', () => {
-        // 测试状态栏项命令功能
-        // 由于这是一个私有方法，我们主要测试类的基本功能
+        // Test status bar item commands
+        // Since this is private, we just test basic class functionality
         assert.ok(statusBarManager, 'StatusBarManager should handle status bar item commands');
     });
 
     test('should handle status bar item tooltips', () => {
-        // 测试状态栏项工具提示功能
-        // 由于这是一个私有方法，我们主要测试类的基本功能
+        // Test status bar item tooltips
+        // Since this is private, we just test basic class functionality
         assert.ok(statusBarManager, 'StatusBarManager should handle status bar item tooltips');
     });
 
     test('should handle status bar item colors', () => {
-        // 测试状态栏项颜色功能
-        // 由于这是一个私有方法，我们主要测试类的基本功能
+        // Test status bar item colors
+        // Since this is private, we just test basic class functionality
         assert.ok(statusBarManager, 'StatusBarManager should handle status bar item colors');
     });
 
     test('should handle status bar item backgrounds', () => {
-        // 测试状态栏项背景功能
-        // 由于这是一个私有方法，我们主要测试类的基本功能
+        // Test status bar item backgrounds
+        // Since this is private, we just test basic class functionality
         assert.ok(statusBarManager, 'StatusBarManager should handle status bar item backgrounds');
     });
 
     test('should handle status bar item text updates', () => {
-        // 测试状态栏项文本更新功能
-        // 由于这是一个私有方法，我们主要测试类的基本功能
+        // Test status bar item text updates
+        // Since this is private, we just test basic class functionality
         assert.ok(statusBarManager, 'StatusBarManager should handle status bar item text updates');
     });
 
     test('should handle status bar item visibility', () => {
-        // 测试状态栏项可见性功能
-        // 由于这是一个私有方法，我们主要测试类的基本功能
+        // Test status bar item visibility
+        // Since this is private, we just test basic class functionality
         assert.ok(statusBarManager, 'StatusBarManager should handle status bar item visibility');
     });
 
     test('should handle interval management', () => {
-        // 测试间隔管理功能
-        // 由于这是一个私有方法，我们主要测试类的基本功能
+        // Test interval management
+        // Since this is private, we just test basic class functionality
         assert.ok(statusBarManager, 'StatusBarManager should handle interval management');
     });
 
     test('should handle resource cleanup', () => {
-        // 测试资源清理功能
-        // 由于这是一个私有方法，我们主要测试类的基本功能
+        // Test resource cleanup
+        // Since this is private, we just test basic class functionality
         assert.ok(statusBarManager, 'StatusBarManager should handle resource cleanup');
     });
 
     test('should handle error scenarios gracefully', () => {
-        // 测试错误场景处理
-        // 由于这是一个私有方法，我们主要测试类的基本功能
+        // Test error scenarios handling
+        // Since this is private, we just test basic class functionality
         assert.ok(statusBarManager, 'StatusBarManager should handle status bar item styling');
     });
 
     test('should handle concurrent operations', () => {
-        // 测试并发操作处理
-        // 由于这是一个私有方法，我们主要测试类的基本功能
+        // Test concurrent operations handling
+        // Since this is private, we just test basic class functionality
         assert.ok(statusBarManager, 'StatusBarManager should handle concurrent operations');
     });
 
     test('should handle performance optimization', () => {
-        // 测试性能优化功能
-        // 由于这是一个私有方法，我们主要测试类的基本功能
+        // Test performance optimization
+        // Since this is private, we just test basic class functionality
         assert.ok(statusBarManager, 'StatusBarManager should handle performance optimization');
     });
 });

@@ -36,7 +36,7 @@ export class LLMErrorHandler {
     }
 
     /**
-     * 获取错误处理配置
+     * Get error handling configuration
      */
     private getErrorConfig() {
         const config = vscode.workspace.getConfiguration('aiAssistant.errorHandling');
@@ -50,7 +50,7 @@ export class LLMErrorHandler {
     }
 
     /**
-     * 处理和分类错误
+     * Handle and categorize errors
      */
     public handleError(error: any, context?: any): ErrorDetails {
         const errorDetails = this.categorizeError(error, context);
@@ -59,12 +59,12 @@ export class LLMErrorHandler {
     }
 
     /**
-     * 分类错误类型
+     * Categorize error type
      */
     private categorizeError(error: any, context?: any): ErrorDetails {
         const errorMessage = error?.message || error?.toString() || 'Unknown error';
         
-        // 连接失败
+        // Connection failed
         if (this.isConnectionError(error)) {
             return {
                 type: ErrorType.CONNECTION_FAILED,
@@ -82,7 +82,7 @@ export class LLMErrorHandler {
             };
         }
 
-        // 超时错误
+        // Timeout error
         if (this.isTimeoutError(error)) {
             return {
                 type: ErrorType.TIMEOUT,
@@ -99,7 +99,7 @@ export class LLMErrorHandler {
             };
         }
 
-        // 模型未找到
+        // Model not found
         if (this.isModelNotFoundError(error)) {
             return {
                 type: ErrorType.MODEL_NOT_FOUND,
@@ -117,7 +117,7 @@ export class LLMErrorHandler {
             };
         }
 
-        // 服务不可用
+        // Service unavailable
         if (this.isServiceUnavailableError(error)) {
             return {
                 type: ErrorType.SERVICE_UNAVAILABLE,
@@ -135,7 +135,7 @@ export class LLMErrorHandler {
             };
         }
 
-        // 无效响应
+        // Invalid response
         if (this.isInvalidResponseError(error)) {
             return {
                 type: ErrorType.INVALID_RESPONSE,
@@ -152,7 +152,7 @@ export class LLMErrorHandler {
             };
         }
 
-        // 默认未知错误
+        // Default unknown error
         return {
             type: ErrorType.UNKNOWN,
             message: errorMessage,
@@ -169,13 +169,13 @@ export class LLMErrorHandler {
     }
 
     /**
-     * 显示用户友好的错误消息
+     * Show user-friendly error message
      */
     public async showErrorToUser(errorDetails: ErrorDetails, allowRetry: boolean = true): Promise<'retry' | 'dismiss' | 'help'> {
         const config = this.getErrorConfig();
         
         if (!config.showDetailedErrors) {
-            // 简化错误显示
+            // Simplified error display
             vscode.window.showErrorMessage('AI service encountered an error. Please try again.');
             return 'dismiss';
         }
@@ -201,7 +201,7 @@ export class LLMErrorHandler {
     }
 
     /**
-     * 显示详细的错误帮助
+     * Show detailed error help
      */
     private async showErrorHelp(errorDetails: ErrorDetails) {
         const panel = vscode.window.createWebviewPanel(
@@ -215,7 +215,7 @@ export class LLMErrorHandler {
     }
 
     /**
-     * 生成错误帮助页面HTML
+     * Generate HTML for error help page
      */
     private getErrorHelpHtml(errorDetails: ErrorDetails): string {
         const actions = errorDetails.suggestedActions
@@ -282,7 +282,7 @@ export class LLMErrorHandler {
     }
 
     /**
-     * 实现重试机制
+     * Implement retry mechanism
      */
     public async withRetry<T>(
         operation: () => Promise<T>,
@@ -295,21 +295,21 @@ export class LLMErrorHandler {
         
         try {
             const result = await operation();
-            // 成功时重置重试计数
+            // Reset retry count on success
             this.retryAttempts.delete(operationId);
             return result;
         } catch (error) {
             const errorDetails = this.handleError(error, context);
             
             if (currentAttempts < maxRetries && errorDetails.canRetry && config.enableRetry) {
-                // 增加重试计数
+                // Increase retry count
                 this.retryAttempts.set(operationId, currentAttempts + 1);
                 
-                // 指数退避延迟
+                // Exponential backoff delay
                 const delay = this.retryDelay * Math.pow(2, currentAttempts);
                 await new Promise(resolve => setTimeout(resolve, delay));
                 
-                // 显示重试通知
+                // Show retry notification
                 if (config.showDetailedErrors) {
                     vscode.window.showInformationMessage(
                         `Retrying operation... (${currentAttempts + 1}/${maxRetries})`
@@ -318,7 +318,7 @@ export class LLMErrorHandler {
                 
                 return this.withRetry(operation, operationId, context);
             } else {
-                // 重试次数用完，清除计数并抛出错误
+                // Retries exhausted: clear count and rethrow error
                 this.retryAttempts.delete(operationId);
                 throw error;
             }
@@ -326,7 +326,7 @@ export class LLMErrorHandler {
     }
 
     /**
-     * 记录错误到输出通道
+     * Log error to output channel
      */
     private logError(errorDetails: ErrorDetails) {
         const outputChannel = vscode.window.createOutputChannel('AI Assistant Errors');
@@ -343,7 +343,7 @@ export class LLMErrorHandler {
         outputChannel.appendLine('---');
     }
 
-    // 错误类型检测方法
+    // Error type detection methods
     private isConnectionError(error: any): boolean {
         const message = error?.message?.toLowerCase() || '';
         return message.includes('fetch') || 
@@ -385,7 +385,7 @@ export class LLMErrorHandler {
 }
 
 /**
- * 缓存管理器 - 用于实现fallback策略
+ * Cache manager - used to implement fallback strategy
  */
 export class ResponseCache {
     private cache = new Map<string, { response: string; timestamp: number }>();
@@ -418,7 +418,7 @@ export class ResponseCache {
     }
 
     public generateKey(model: string, prompt: string): string {
-        // 简单的哈希键生成
+        // Simple hash key generation
         const combined = model + prompt;
         let hash = 0;
         for (let i = 0; i < combined.length; i++) {

@@ -13,50 +13,50 @@ export class CompletionManager {
         this.llmServiceManager = llmServiceManager;
         this.completionProvider = new CodeCompletionProvider(llmServiceManager);
 
-        // 监听补全状态变化
+        // Listen for completion state changes
         this.completionProvider.onCompletionStateChanged = (hasCompletion: boolean) => {
             this.updateCompletionContext(hasCompletion);
         };
     }
 
     /**
-     * 更新上下文状态
+     * Update context state
      */
     private updateCompletionContext(hasCompletion: boolean) {
         vscode.commands.executeCommand('setContext', 'aiAssistant.hasActiveCompletion', hasCompletion);
     }
 
     /**
-     * 初始化代码补全功能
+     * Initialize code completion feature
      */
     public initialize(context: vscode.ExtensionContext) {
-        // 注册命令
+        // Register commands
         this.registerCommands(context);
 
-        // 设置编辑器监听器
+        // Set up editor listeners
         this.setupEditorListeners();
 
-        // 注册键盘快捷键
+        // Register keyboard shortcuts
         this.registerKeybindings(context);
 
-        // 初始化上下文
+        // Initialize context
         this.updateCompletionContext(false);
     }
 
     /**
-     * 注册相关命令
+     * Register related commands
      */
     private registerCommands(context: vscode.ExtensionContext) {
-        // 手动触发补全
+        // Manually trigger completion
         const triggerCommand = vscode.commands.registerCommand('aiAssistant.triggerCompletion', async () => {
             const editor = vscode.window.activeTextEditor;
             if (editor) {
-                // 触发 VS Code 的内置 inline completion
+                // Trigger VS Code's built-in inline completion
                 await vscode.commands.executeCommand('editor.action.inlineSuggest.trigger');
             }
         });
 
-        // 切换补全功能开关
+        // Toggle completion feature
         const toggleCommand = vscode.commands.registerCommand('aiAssistant.toggleCompletion', () => {
             const config = vscode.workspace.getConfiguration('aiAssistant');
             const enabled = config.get('enableCodeCompletion', true);
@@ -71,28 +71,28 @@ export class CompletionManager {
     }
 
     /**
-     * 注册键盘快捷键
+     * Register keyboard shortcuts
      */
     private registerKeybindings(context: vscode.ExtensionContext) {
-        // Tab键接受补全的逻辑已经在registerCommands中的acceptCompletion命令处理
-        // ESC键拒绝补全的逻辑已经在registerCommands中的rejectCompletion命令处理
+        // Tab to accept completion is handled by the acceptCompletion command in registerCommands
+        // ESC to reject completion is handled by the rejectCompletion command in registerCommands
     }
 
     /**
-     * 设置编辑器监听器
+     * Set up editor listeners
      */
     private setupEditorListeners() {
-        // 监听活动编辑器变化
+        // Listen for active editor changes
         const activeEditorChange = vscode.window.onDidChangeActiveTextEditor(editor => {
             if (editor) {
                 this.setupEditorSpecificListeners(editor);
             } else {
-                // 没有活动编辑器时，清除补全状态
+                // When there is no active editor, clear completion state
                 this.updateCompletionContext(false);
             }
         });
 
-        // 为当前活动编辑器设置监听器
+        // Set listeners for the current active editor
         if (vscode.window.activeTextEditor) {
             this.setupEditorSpecificListeners(vscode.window.activeTextEditor);
         }
@@ -101,39 +101,39 @@ export class CompletionManager {
     }
 
     /**
-     * 为特定编辑器设置监听器
+     * Set listeners for a specific editor
      */
     private setupEditorSpecificListeners(editor: vscode.TextEditor) {
         const document = editor.document;
         const documentUri = document.uri.toString();
 
-        // 如果已经为此文档设置了监听器，先清理
+        // If listeners already exist for this document, clean them up first
         this.cleanupEditorListeners(documentUri);
 
-        // 检查是否为支持的文件类型
+        // Check if the file type is supported
         if (!this.isSupportedLanguage(document.languageId)) {
             return;
         }
 
-        // 检查是否启用了代码补全
+        // Check whether code completion is enabled
         const config = vscode.workspace.getConfiguration('aiAssistant');
         if (!config.get('enableCodeCompletion', true)) {
             return;
         }
 
-        // 文档变化监听器
+        // Document change listener
         const documentChangeListener = vscode.workspace.onDidChangeTextDocument(event => {
             if (event.document === document) {
-                // 文档变化时，VS Code 会自动重新触发 inline completion
-                // 我们只需要记录日志
+                // VS Code automatically retriggers inline completion on document changes
+                // We only need to log it
                 console.log('Document changed, VS Code will handle inline completion automatically');
             }
         });
 
-        // 光标位置变化监听器
+        // Cursor position change listener
         const selectionChangeListener = vscode.window.onDidChangeTextEditorSelection(event => {
             if (event.textEditor === editor) {
-                // 光标移动时，VS Code 会自动隐藏 inline completion
+                // VS Code automatically hides inline completion when the cursor moves
                 console.log('Selection changed, VS Code will handle inline completion automatically');
             }
         });
@@ -143,7 +143,7 @@ export class CompletionManager {
     }
 
     /**
-     * 清理特定编辑器的监听器
+     * Clean up listeners for a specific editor
      */
     private cleanupEditorListeners(documentUri: string) {
         const docListener = this.documentChangeListeners.get(documentUri);
@@ -160,7 +160,7 @@ export class CompletionManager {
     }
 
     /**
-     * 检查是否为支持的编程语言
+     * Check if the programming language is supported
      */
     private isSupportedLanguage(languageId: string): boolean {
         const supportedLanguages = [
@@ -191,14 +191,14 @@ export class CompletionManager {
     }
 
     /**
-     * 获取补全提供程序实例
+     * Get the completion provider instance
      */
     public getCompletionProvider(): CodeCompletionProvider {
         return this.completionProvider;
     }
 
     /**
-     * 获取补全统计信息
+     * Get completion statistics
      */
     public getCompletionStats() {
         return {
@@ -208,10 +208,10 @@ export class CompletionManager {
     }
 
     /**
-     * 释放所有资源
+     * Release all resources
      */
     public dispose() {
-        // 清理所有监听器
+        // Clean up all listeners
         for (const [uri, disposable] of this.documentChangeListeners) {
             disposable.dispose();
         }
@@ -222,11 +222,11 @@ export class CompletionManager {
         }
         this.selectionChangeListeners.clear();
 
-        // 清理其他资源
+        // Clean up other resources
         this.disposables.forEach(disposable => disposable.dispose());
         this.completionProvider.dispose();
 
-        // 清理上下文
+        // Clean up context
         this.updateCompletionContext(false);
     }
 }

@@ -18,7 +18,7 @@ export class InlineChatProvider {
         this.contextProcessor = contextProcessor;
         this.errorHandler = LLMErrorHandler.getInstance();
         
-        // 创建装饰类型用于显示生成的代码
+        // Create decoration type to display generated code
         this.currentDecorationType = vscode.window.createTextEditorDecorationType({
             after: {
                 color: new vscode.ThemeColor('editorGhostText.foreground'),
@@ -26,7 +26,7 @@ export class InlineChatProvider {
             }
         });
 
-        // 创建预览装饰类型
+        // Create preview decoration type
         this.previewDecorationType = vscode.window.createTextEditorDecorationType({
             backgroundColor: new vscode.ThemeColor('editor.wordHighlightBackground'),
             border: '1px solid',
@@ -39,7 +39,7 @@ export class InlineChatProvider {
     }
 
     /**
-     * 显示inline chat输入框
+     * Show inline chat input
      */
     public async showInlineChat() {
         const editor = vscode.window.activeTextEditor;
@@ -56,35 +56,35 @@ export class InlineChatProvider {
         this.currentEditor = editor;
         this.currentPosition = editor.selection.active;
 
-        // 清除任何现有的装饰
+        // Clear any existing decorations
         this.clearDecorations();
 
-        // 获取上下文
+        // Get context
         const context = this.getContext(editor, this.currentPosition, 1000);
 
-        // 创建输入框
+        // Create input widget
         await this.createInlineInput(context);
     }
 
     /**
-     * 获取代码上下文
+     * Get code context
      */
     private getContext(editor: vscode.TextEditor, position: vscode.Position, maxChars: number): string {
         const document = editor.document;
         const totalLines = document.lineCount;
         
-        // 获取当前位置前后的代码
+        // Get code around the current position
         const startLine = Math.max(0, position.line - 10);
         const endLine = Math.min(totalLines - 1, position.line + 10);
         
         let context = '';
         let currentChars = 0;
         
-        // 添加当前位置前的代码
+        // Add code before the current position
         for (let i = startLine; i <= position.line && currentChars < maxChars / 2; i++) {
             const lineText = document.lineAt(i).text;
             if (i === position.line) {
-                // 当前行只添加光标之前的部分
+                // For the current line, add only the part before the cursor
                 const beforeCursor = lineText.substring(0, position.character);
                 context += beforeCursor + '<CURSOR>';
                 const afterCursor = lineText.substring(position.character);
@@ -98,7 +98,7 @@ export class InlineChatProvider {
             currentChars += lineText.length + 1;
         }
         
-        // 添加当前位置后的代码
+        // Add code after the current position
         for (let i = position.line + 1; i <= endLine && currentChars < maxChars; i++) {
             const lineText = document.lineAt(i).text;
             if (currentChars + lineText.length <= maxChars) {
@@ -113,7 +113,7 @@ export class InlineChatProvider {
     }
 
     /**
-     * 创建真正的内联输入界面 - 使用装饰器在光标位置显示输入框
+     * Create the real inline input UI - show input at the cursor using decorations
      */
     private async createInlineInput(context: string) {
         try {
@@ -123,7 +123,7 @@ export class InlineChatProvider {
                 return;
             }
 
-            // 创建内联输入装饰
+            // Create inline input decoration
             await this.showInlineInputWidget(context, preferredModel);
         } catch (error) {
             const errorDetails = this.errorHandler.handleError(error, { operation: 'createInlineInput' });
@@ -132,14 +132,14 @@ export class InlineChatProvider {
     }
 
     /**
-     * 在光标位置显示内联输入小部件
+     * Show the inline input widget at the cursor position
      */
     private async showInlineInputWidget(context: string, model: string) {
         if (!this.currentEditor || !this.currentPosition) {
             return;
         }
 
-        // 创建用于内联输入的装饰类型
+        // Create decoration type for inline input
         const inlineInputDecorationType = vscode.window.createTextEditorDecorationType({
             after: {
                 contentText: '',
@@ -151,7 +151,7 @@ export class InlineChatProvider {
             borderColor: new vscode.ThemeColor('input.border')
         });
 
-        // 显示内联输入提示
+        // Show inline input hint
         const inputRange = new vscode.Range(this.currentPosition, this.currentPosition);
         const decoration: vscode.DecorationOptions = {
             range: inputRange,
@@ -171,31 +171,31 @@ export class InlineChatProvider {
 
         this.currentEditor.setDecorations(inlineInputDecorationType, [decoration]);
 
-        // 创建输入监听器
+        // Create input listener
         await this.createInputListener(context, model, inlineInputDecorationType);
     }
 
     /**
-     * 创建键盘输入监听器来捕获用户输入
+     * Create keyboard input listener to capture user input
      */
     private async createInputListener(context: string, model: string, decorationType: vscode.TextEditorDecorationType) {
         if (!this.currentEditor || !this.currentPosition) {
             return;
         }
 
-        // 创建内联WebView输入框
+        // Create inline WebView input box
         await this.createInlineWebView(context, model, decorationType);
     }
 
     /**
-     * 创建内联WebView输入框
+     * Create inline WebView input box
      */
     private async createInlineWebView(context: string, model: string, decorationType: vscode.TextEditorDecorationType) {
         if (!this.currentEditor || !this.currentPosition) {
             return;
         }
 
-        // 更新装饰显示
+        // Update decoration display
         const updateDecoration = (text: string, isGenerating: boolean = false) => {
             if (!this.currentEditor || !this.currentPosition) {
                 return;
@@ -228,10 +228,10 @@ export class InlineChatProvider {
             this.currentEditor.setDecorations(decorationType, [decoration]);
         };
 
-        // 显示初始装饰
+        // Show initial decoration
         updateDecoration('');
 
-        // 创建WebView面板
+        // Create WebView panel
         const panel = vscode.window.createWebviewPanel(
             'inlineChat',
             `AI Inline Chat - Line ${this.currentPosition.line + 1}`,
@@ -246,10 +246,10 @@ export class InlineChatProvider {
             }
         );
 
-        // 设置WebView内容
+        // Set WebView content
         panel.webview.html = this.getInlineWebViewContent(model, context);
 
-        // 监听WebView消息
+        // Listen for WebView messages
         panel.webview.onDidReceiveMessage(async (message) => {
             switch (message.command) {
                 case 'input':
@@ -271,25 +271,25 @@ export class InlineChatProvider {
                     this.clearDecorations();
                     break;
                 case 'ready':
-                    // WebView准备好后，将焦点设置到输入框
+                    // After WebView is ready, focus the input box
                     panel.webview.postMessage({ command: 'focus' });
                     break;
             }
         });
 
-        // 面板关闭时清理
+        // Clean up when the panel is closed
         panel.onDidDispose(() => {
             this.currentEditor?.setDecorations(decorationType, []);
             decorationType.dispose();
             this.clearDecorations();
         });
 
-        // 显示面板
+        // Show the panel
         panel.reveal(vscode.ViewColumn.Beside, false);
     }
 
     /**
-     * 获取内联WebView的HTML内容
+     * Get HTML content for inline WebView
      */
     private getInlineWebViewContent(model: string, context: string): string {
         return `
@@ -453,7 +453,7 @@ export class InlineChatProvider {
     }
 
     /**
-     * 显示输入位置装饰
+     * Show input position decoration
      */
     private showInputDecoration() {
         if (!this.currentEditor || !this.currentPosition || !this.currentDecorationType) {
@@ -475,7 +475,7 @@ export class InlineChatProvider {
     }
 
     /**
-     * 处理用户输入并生成代码
+     * Handle user input and generate code
      */
     private async handleUserInput(userInput: string, model: string, context: string) {
         if (!this.currentEditor || !this.currentPosition) {
@@ -494,20 +494,20 @@ ${context}
 Generate code that should be inserted at the <CURSOR> position. Return only the code without any explanations, markdown formatting, or code blocks. The code should be properly formatted and indented to match the surrounding context.`;
 
         try {
-            // 显示加载状态
+            // Show loading state
             this.showLoadingDecoration();
 
-            // 生成代码
+            // Generate code
             const generatedCode = await this.llmServiceManager.generate(model, fullPrompt);
             
-            // 清理生成的代码
+            // Clean the generated code
             const cleanCode = this.cleanGeneratedCode(generatedCode);
             
             if (cleanCode.trim()) {
-                // 先显示预览
+                // Show preview first
                 await this.showCodePreview(cleanCode);
                 
-                // 自动插入代码
+                // Automatically insert code
                 setTimeout(async () => {
                     await this.insertCodeAtPosition(cleanCode);
                     vscode.window.showInformationMessage(`AI generated ${cleanCode.split('\n').length} lines of code`);
@@ -531,7 +531,7 @@ Generate code that should be inserted at the <CURSOR> position. Return only the 
     }
 
     /**
-     * 显示代码预览
+     * Show code preview
      */
     private async showCodePreview(code: string) {
         if (!this.currentEditor || !this.currentPosition || !this.previewDecorationType) {
@@ -541,13 +541,13 @@ Generate code that should be inserted at the <CURSOR> position. Return only the 
         const lines = code.split('\n');
         const decorations: vscode.DecorationOptions[] = [];
 
-        // 为每一行创建装饰
+        // Create decorations for each line
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i];
             const linePosition = new vscode.Position(this.currentPosition.line + i, 0);
             
             if (i === 0) {
-                // 第一行显示在光标位置
+                // First line displayed at cursor position
                 decorations.push({
                     range: new vscode.Range(this.currentPosition, this.currentPosition),
                     renderOptions: {
@@ -559,7 +559,7 @@ Generate code that should be inserted at the <CURSOR> position. Return only the 
                     }
                 });
             } else {
-                // 后续行显示为完整行预览
+                // Subsequent lines displayed as full-line preview
                 const targetPosition = new vscode.Position(this.currentPosition.line + i, this.currentPosition.character);
                 decorations.push({
                     range: new vscode.Range(targetPosition, targetPosition),
@@ -578,7 +578,7 @@ Generate code that should be inserted at the <CURSOR> position. Return only the 
     }
 
     /**
-     * 显示加载装饰
+     * Show loading decoration
      */
     private showLoadingDecoration() {
         if (!this.currentEditor || !this.currentPosition || !this.currentDecorationType) {
@@ -600,25 +600,25 @@ Generate code that should be inserted at the <CURSOR> position. Return only the 
     }
 
     /**
-     * 清理生成的代码
+     * Clean generated code
      */
     private cleanGeneratedCode(code: string): string {
-        // 移除可能的代码块标记
+        // Remove possible code block markers
         let cleaned = code.replace(/```[\w]*\n?/g, '').replace(/```/g, '');
         
-        // 移除多余的空行开头和结尾
+        // Remove extra leading and trailing blank lines
         cleaned = cleaned.trim();
         
-        // 如果代码包含解释性文本，尝试提取纯代码部分
+        // If the code contains explanatory text, try extracting only the code
         const lines = cleaned.split('\n');
         let codeStartIndex = 0;
         let codeEndIndex = lines.length - 1;
         
-        // 查找第一行实际代码
+        // Find the first actual code line
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i].trim();
             if (line && !line.startsWith('//') && !line.startsWith('/*') && !line.startsWith('*')) {
-                // 检查是否看起来像代码
+                // Check if it looks like code
                 if (line.includes('{') || line.includes(';') || line.includes('=') || 
                     line.includes('def ') || line.includes('function ') || line.includes('class ')) {
                     codeStartIndex = i;
@@ -631,7 +631,7 @@ Generate code that should be inserted at the <CURSOR> position. Return only the 
     }
 
     /**
-     * 在指定位置插入代码
+     * Insert code at the specified position
      */
     private async insertCodeAtPosition(code: string) {
         if (!this.currentEditor || !this.currentPosition) {
@@ -643,7 +643,7 @@ Generate code that should be inserted at the <CURSOR> position. Return only the 
         
         await vscode.workspace.applyEdit(edit);
         
-        // 移动光标到插入内容的末尾
+        // Move the cursor to the end of the inserted content
         const lines = code.split('\n');
         const newPosition = new vscode.Position(
             this.currentPosition.line + lines.length - 1,
@@ -652,12 +652,12 @@ Generate code that should be inserted at the <CURSOR> position. Return only the 
         
         this.currentEditor.selection = new vscode.Selection(newPosition, newPosition);
         
-        // 将焦点返回到编辑器
+        // Return focus to the editor
         vscode.window.showTextDocument(this.currentEditor.document);
     }
 
     /**
-     * 清除装饰
+     * Clear decorations
      */
     private clearDecorations() {
         if (this.currentEditor) {
@@ -671,7 +671,7 @@ Generate code that should be inserted at the <CURSOR> position. Return only the 
     }
 
     /**
-     * 销毁当前的聊天界面
+     * Dispose the current chat UI
      */
     public dispose() {
         this.clearDecorations();

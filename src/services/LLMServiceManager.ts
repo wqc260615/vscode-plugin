@@ -4,8 +4,8 @@ import { OllamaService } from './ollamaService';
 import { LocalAIService } from './LocalAIService';
 
 /**
- * LLM服务管理器
- * 负责管理不同的LLM服务提供商，提供统一的接口
+ * LLM service manager
+ * Manages different LLM service providers and offers a unified interface
  */
 export class LLMServiceManager {
     private static instance: LLMServiceManager;
@@ -25,27 +25,27 @@ export class LLMServiceManager {
     }
 
     /**
-     * 初始化默认服务
+     * Initialize default services
      */
     private initializeDefaultServices(): void {
-        // 注册Ollama服务工厂
+        // Register Ollama service factory
         this.registerServiceFactory('ollama', {
             createService: (config: ILLMServiceConfig) => new OllamaService(config),
             getSupportedProviders: () => ['ollama']
         });
 
-        // 注册LocalAI服务工厂
+        // Register LocalAI service factory
         this.registerServiceFactory('localai', {
             createService: (config: ILLMServiceConfig) => new LocalAIService(config),
             getSupportedProviders: () => ['localai']
         });
 
-        // 创建默认的Ollama服务
+        // Create default Ollama service
         const ollamaService = new OllamaService();
         this.services.set('ollama', ollamaService);
         this.currentService = ollamaService;
 
-        // 监听配置变化
+        // Listen for configuration changes
         vscode.workspace.onDidChangeConfiguration(e => {
             if (e.affectsConfiguration('aiAssistant.llmProvider')) {
                 this.switchProvider();
@@ -54,14 +54,14 @@ export class LLMServiceManager {
     }
 
     /**
-     * 注册服务工厂
+     * Register a service factory
      */
     public registerServiceFactory(providerName: string, factory: ILLMServiceFactory): void {
         this.serviceFactories.set(providerName, factory);
     }
 
     /**
-     * 创建新的服务实例
+     * Create a new service instance
      */
     public createService(providerName: string, config?: ILLMServiceConfig): ILLMService | null {
         const factory = this.serviceFactories.get(providerName);
@@ -81,33 +81,33 @@ export class LLMServiceManager {
     }
 
     /**
-     * 切换服务提供商
+     * Switch service provider
      */
     public async switchProvider(): Promise<void> {
         const config = vscode.workspace.getConfiguration('aiAssistant');
         const providerName = config.get('llmProvider', 'ollama');
 
-        // 如果当前服务已经是目标提供商，无需切换
+        // If current service is already the target, no switch needed
         if (this.currentService?.providerName === providerName) {
             return;
         }
 
-        // 检查服务是否已存在
+        // Check if the service already exists
         let service: ILLMService | null = this.services.get(providerName) || null;
         
-        // 如果服务不存在，尝试创建
+        // If service doesn't exist, try creating it
         if (!service) {
             service = this.createService(providerName);
         }
 
         if (service) {
-            // 检查服务可用性
+            // Check service availability
             const isAvailable = await service.isServiceAvailable();
             if (isAvailable) {
                 this.currentService = service;
                 console.log(`Switched to LLM provider: ${providerName}`);
                 
-                // 通知其他组件服务已切换
+                // Notify other components that the service has switched
                 vscode.commands.executeCommand('aiAssistant.llmProviderChanged', providerName);
             } else {
                 console.warn(`Provider ${providerName} is not available, keeping current provider`);
@@ -124,35 +124,35 @@ export class LLMServiceManager {
     }
 
     /**
-     * 获取当前活跃的服务
+     * Get the current active service
      */
     public getCurrentService(): ILLMService | null {
         return this.currentService;
     }
 
     /**
-     * 获取指定提供商的服务
+     * Get the service for a specific provider
      */
     public getService(providerName: string): ILLMService | null {
         return this.services.get(providerName) || null;
     }
 
     /**
-     * 获取所有可用的服务提供商
+     * Get all available service providers
      */
     public getAvailableProviders(): string[] {
         return Array.from(this.serviceFactories.keys());
     }
 
     /**
-     * 获取当前提供商名称
+     * Get the current provider name
      */
     public getCurrentProviderName(): string {
         return this.currentService?.providerName || 'ollama';
     }
 
     /**
-     * 检查服务是否可用
+     * Check whether the service is available
      */
     public async isServiceAvailable(): Promise<boolean> {
         const service = this.getCurrentService();
@@ -160,7 +160,7 @@ export class LLMServiceManager {
     }
 
     /**
-     * 获取可用的模型列表
+     * Get the list of available models
      */
     public async getModels(): Promise<string[]> {
         const service = this.getCurrentService();
@@ -168,7 +168,7 @@ export class LLMServiceManager {
     }
 
     /**
-     * 获取首选模型（自动选择最佳可用模型）
+     * Get the preferred model (auto-select the best available)
      */
     public async getPreferredModel(): Promise<string> {
         const service = this.getCurrentService();
@@ -176,12 +176,12 @@ export class LLMServiceManager {
             throw new Error('No LLM service available');
         }
 
-        // 注意：需要 ILLMService 接口里定义 getPreferredModel()
+        // Note: requires getPreferredModel() to be defined in the ILLMService interface
         if (typeof (service as any).getPreferredModel === 'function') {
             return await (service as any).getPreferredModel();
         }
 
-        // 如果某些 service 没有实现，退化为第一个可用模型
+        // If some services don't implement it, fall back to the first available model
         const models = await service.getModels();
         if (models.length === 0) {
             throw new Error('No models available');
@@ -191,7 +191,7 @@ export class LLMServiceManager {
 
 
     /**
-     * 流式聊天请求
+     * Streaming chat request
      */
     public async chatStream(
         model: string,
@@ -211,7 +211,7 @@ export class LLMServiceManager {
     }
 
     /**
-     * 非流式聊天请求
+     * Non-streaming chat request
      */
     public async chat(model: string, prompt: string, session: any): Promise<string> {
         const service = this.getCurrentService();
@@ -223,7 +223,7 @@ export class LLMServiceManager {
     }
 
     /**
-     * 生成简单文本
+     * Generate plain text
      */
     public async generate(model: string, prompt: string): Promise<string> {
         const service = this.getCurrentService();
@@ -235,7 +235,7 @@ export class LLMServiceManager {
     }
 
     /**
-     * 拉取模型
+     * Pull a model
      */
     public async pullModel(modelName: string, onProgress?: (progress: any) => void): Promise<boolean> {
         const service = this.getCurrentService();
@@ -247,7 +247,7 @@ export class LLMServiceManager {
     }
 
     /**
-     * 删除模型
+     * Delete a model
      */
     public async deleteModel(modelName: string): Promise<boolean> {
         const service = this.getCurrentService();
@@ -259,7 +259,7 @@ export class LLMServiceManager {
     }
 
     /**
-     * 获取模型信息
+     * Get model information
      */
     public async getModelInfo(modelName: string): Promise<any> {
         const service = this.getCurrentService();
@@ -271,7 +271,7 @@ export class LLMServiceManager {
     }
 
     /**
-     * 清理资源
+     * Clean up resources
      */
     public dispose(): void {
         this.services.clear();

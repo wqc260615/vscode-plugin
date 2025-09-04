@@ -1,29 +1,29 @@
 import { ChatSession } from '../sessionManager';
 
 /**
- * LLM服务抽象接口
- * 所有LLM服务提供商都必须实现此接口
+ * Abstract interface for LLM services
+ * All LLM service providers must implement this interface
  */
 export interface ILLMService {
     /**
-     * 服务提供商名称
+     * Service provider name
      */
     readonly providerName: string;
 
     /**
-     * 检查服务是否可用
+     * Check whether the service is available
      */
     isServiceAvailable(): Promise<boolean>;
 
     /**
-     * 获取可用的模型列表
+     * Get the list of available models
      */
     getModels(): Promise<string[]>;
 
     getPreferredModel(): Promise<string | null>;
 
     /**
-     * 流式聊天请求
+     * Streaming chat request
      */
     chatStream(
         model: string,
@@ -35,33 +35,33 @@ export interface ILLMService {
     ): Promise<void>;
 
     /**
-     * 非流式聊天请求
+     * Non-streaming chat request
      */
     chat(model: string, prompt: string, session: ChatSession): Promise<string>;
 
     /**
-     * 生成简单文本（不包含会话上下文）
+     * Generate plain text (without session context)
      */
     generate(model: string, prompt: string): Promise<string>;
 
     /**
-     * 拉取模型
+     * Pull a model
      */
     pullModel(modelName: string, onProgress?: (progress: any) => void): Promise<boolean>;
 
     /**
-     * 删除模型
+     * Delete a model
      */
     deleteModel(modelName: string): Promise<boolean>;
 
     /**
-     * 获取模型信息
+     * Get model information
      */
     getModelInfo(modelName: string): Promise<any>;
 }
 
 /**
- * LLM服务配置接口
+ * LLM service configuration interface
  */
 export interface ILLMServiceConfig {
     providerName: string;
@@ -72,7 +72,7 @@ export interface ILLMServiceConfig {
 }
 
 /**
- * LLM服务工厂接口
+ * LLM service factory interface
  */
 export interface ILLMServiceFactory {
     createService(config: ILLMServiceConfig): ILLMService;

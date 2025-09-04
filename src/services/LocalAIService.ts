@@ -4,8 +4,8 @@ import { LLMErrorHandler } from './errorHandler';
 import { ILLMService, ILLMServiceConfig } from './interfaces/ILLMService';
 
 /**
- * LocalAI服务实现
- * 示例：如何实现新的LLM服务提供商
+ * LocalAI service implementation
+ * Example: how to implement a new LLM service provider
  */
 export class LocalAIService implements ILLMService {
     public readonly providerName: string = 'localai';
@@ -17,7 +17,7 @@ export class LocalAIService implements ILLMService {
         this.baseUrl = config?.baseUrl || this.getLocalAIUrl();
         this.errorHandler = LLMErrorHandler.getInstance();
 
-        // 监听配置变化
+        // Listen for configuration changes
         vscode.workspace.onDidChangeConfiguration(e => {
             if (e.affectsConfiguration('aiAssistant.localaiUrl')) {
                 this.baseUrl = this.getLocalAIUrl();
@@ -280,13 +280,13 @@ export class LocalAIService implements ILLMService {
     }
 
     public async pullModel(modelName: string, onProgress?: (progress: any) => void): Promise<boolean> {
-        // LocalAI通常不需要拉取模型，模型应该已经存在于本地
+        // LocalAI typically doesn't need to pull models; they should already exist locally
         console.log(`LocalAI: Model ${modelName} should already be available locally`);
         return true;
     }
 
     public async deleteModel(modelName: string): Promise<boolean> {
-        // LocalAI通常不支持删除模型
+        // LocalAI usually does not support model deletion
         console.log(`LocalAI: Model deletion not supported for ${modelName}`);
         return false;
     }
@@ -315,8 +315,8 @@ export class LocalAIService implements ILLMService {
             if (!models || models.length === 0) {
                 return null;
             }
-            // LocalAI 可以按你的需求决定默认选择哪个模型
-            // 这里简单地返回第一个
+            // LocalAI can choose a default model as needed
+            // Here we simply return the first one
             return models[0];
         } catch (err) {
             console.warn('Failed to get preferred model from LocalAI:', err);

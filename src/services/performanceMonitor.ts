@@ -16,7 +16,7 @@ export class PerformanceMonitor {
     }
 
     /**
-     * 记录聊天响应性能
+     * Log chat response performance
      */
     public logChatPerformance(
         prompt: string,
@@ -47,7 +47,7 @@ export class PerformanceMonitor {
     }
 
     /**
-     * 记录代码补全性能
+     * Log code completion performance
      */
     public logCompletionPerformance(
         context: string,
@@ -76,7 +76,7 @@ export class PerformanceMonitor {
     }
 
     /**
-     * 记录内联聊天性能
+     * Log inline chat performance
      */
     public logInlineChatPerformance(
         userInput: string,
@@ -107,7 +107,7 @@ export class PerformanceMonitor {
     }
 
     /**
-     * 记录端到端延迟（从用户操作到首次响应）
+     * Log end-to-end latency (from user action to first response)
      */
     public logEndToEndLatency(
         operation: string,
@@ -135,20 +135,20 @@ export class PerformanceMonitor {
     }
 
     /**
-     * 估算token数量（简单估算：按空格分割）
+     * Estimate token count (simple heuristic)
      */
     private estimateTokenCount(text: string): number {
         if (!text || text.trim().length === 0) {
             return 0;
         }
-        // 简单估算：大约每4个字符为1个token，或按单词数计算
+        // Simple estimate: about 1 token per 4 characters, or by word count
         const wordCount = text.trim().split(/\s+/).length;
         const charCount = text.length;
         return Math.max(wordCount, Math.floor(charCount / 4));
     }
 
     /**
-     * 获取速度分类
+     * Get speed category
      */
     private getSpeedCategory(tokensPerSecond: number): string {
         if (tokensPerSecond >= 20) {
@@ -163,7 +163,7 @@ export class PerformanceMonitor {
     }
 
     /**
-     * 获取延迟分类
+     * Get latency category
      */
     private getLatencyCategory(latencyMs: number): string {
         if (latencyMs < 500) {
@@ -180,7 +180,7 @@ export class PerformanceMonitor {
     }
 
     /**
-     * 显示性能输出面板
+     * Show performance output panel
      */
     public showPerformanceOutput(): void {
         this.outputChannel.show();

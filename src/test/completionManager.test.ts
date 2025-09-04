@@ -73,11 +73,11 @@ suite('CompletionManager Test Suite', () => {
     });
 
     teardown(() => {
-        // 清理每个测试后的状态
+        // Clean up state after each test
         if (completionManager) {
             completionManager.dispose();
         }
-        // 重置订阅
+        // Reset subscriptions
         if (mockContext.subscriptions) {
             mockContext.subscriptions.length = 0;
         }
@@ -92,12 +92,12 @@ suite('CompletionManager Test Suite', () => {
     });
 
     test('initialize should register completion provider', () => {
-        // 在测试环境中，命令可能已经存在，所以我们只测试基本功能
+        // In a test environment, commands may already exist, so only test basics
         try {
             completionManager.initialize(mockContext as vscode.ExtensionContext);
             assert.ok(true, 'Should handle initialization gracefully');
         } catch (error: any) {
-            // 如果命令已存在，这是预期的行为
+            // If the command already exists, this is expected
             if (error.message && error.message.includes('already exists')) {
                 assert.ok(true, 'Should handle existing commands gracefully');
             } else {
@@ -110,20 +110,20 @@ suite('CompletionManager Test Suite', () => {
         try {
             completionManager.initialize(mockContext as vscode.ExtensionContext);
         } catch (error: any) {
-            // 忽略命令已存在的错误
+            // Ignore errors for already existing commands
         }
         
         const initialSubscriptions = mockContext.subscriptions?.length || 0;
         
         completionManager.dispose();
         
-        // 检查是否清理了订阅（在测试环境中可能没有订阅需要清理）
+        // Verify subscriptions were cleaned (may be none in test env)
         const finalSubscriptions = mockContext.subscriptions?.length || 0;
         assert.ok(finalSubscriptions <= initialSubscriptions, 'Should not add subscriptions after dispose');
     });
 
     test('should respect enableCodeCompletion setting', () => {
-        // 模拟配置
+        // Mock configuration
         const mockConfig = {
             get: (key: string) => {
                 if (key === 'enableCodeCompletion') {
@@ -153,11 +153,11 @@ suite('CompletionManager Test Suite', () => {
     });
 
     test('should handle completion delay setting', () => {
-        // 模拟配置
+        // Mock configuration
         const mockConfig = {
             get: (key: string) => {
                 if (key === 'completionDelay') {
-                    return 1000; // 1秒延迟
+                    return 1000; // 1 second delay
                 }
                 return undefined;
             }
@@ -183,11 +183,11 @@ suite('CompletionManager Test Suite', () => {
     });
 
     test('should handle completion max length setting', () => {
-        // 模拟配置
+        // Mock configuration
         const mockConfig = {
             get: (key: string) => {
                 if (key === 'completionMaxLength') {
-                    return 100; // 最大100字符
+                    return 100; // max 100 characters
                 }
                 return undefined;
             }
@@ -213,11 +213,11 @@ suite('CompletionManager Test Suite', () => {
     });
 
     test('should handle completion context length setting', () => {
-        // 模拟配置
+        // Mock configuration
         const mockConfig = {
             get: (key: string) => {
                 if (key === 'completionContextLength') {
-                    return 200; // 200字符上下文
+                    return 200; // 200 characters of context
                 }
                 return undefined;
             }
@@ -243,11 +243,11 @@ suite('CompletionManager Test Suite', () => {
     });
 
     test('should handle multiple initialization calls', () => {
-        // 多次初始化应该不会出错
+        // Multiple initializations should not error
         try {
             completionManager.initialize(mockContext as vscode.ExtensionContext);
         } catch (error: any) {
-            // 忽略命令已存在的错误
+            // Ignore errors for already existing commands
         }
         
         try {
@@ -263,10 +263,10 @@ suite('CompletionManager Test Suite', () => {
     });
 
     test('should handle dispose without initialization', () => {
-        // 在未初始化的情况下调用dispose应该不会出错
+        // Calling dispose without initialization should not error
         completionManager.dispose();
         
-        // 测试应该不会抛出异常
+        // Should not throw
         assert.ok(true, 'Should handle dispose without initialization');
     });
 
@@ -274,20 +274,20 @@ suite('CompletionManager Test Suite', () => {
         try {
             completionManager.initialize(mockContext as vscode.ExtensionContext);
         } catch (error: any) {
-            // 忽略命令已存在的错误
+            // Ignore errors for already existing commands
         }
         
-        // 多次调用dispose应该不会出错
+        // Multiple disposes should not error
         completionManager.dispose();
         completionManager.dispose();
         completionManager.dispose();
         
-        // 测试应该不会抛出异常
+        // Should not throw
         assert.ok(true, 'Should handle multiple dispose calls');
     });
 
     test('should handle OllamaService errors gracefully', () => {
-        // 创建一个会抛出错误的模拟OllamaService
+        // Create a mock OllamaService that throws
         const errorOllamaService = {
             generate: () => Promise.reject(new Error('Ollama service error'))
         } as any;
@@ -324,22 +324,22 @@ suite('CompletionManager Test Suite', () => {
     });
 
     test('should handle supported language detection', () => {
-        // 测试支持的语言检测
+        // Test supported language detection
         const supportedLanguages = [
             'javascript', 'typescript', 'python', 'java', 'cpp', 'c', 'csharp',
             'php', 'ruby', 'go', 'rust', 'swift', 'kotlin', 'json', 'html',
             'css', 'scss', 'less', 'xml', 'yaml', 'sql'
         ];
 
-        // 这些测试主要验证方法存在且不会抛出异常
+        // These tests validate the method exists and does not throw
         supportedLanguages.forEach(lang => {
             try {
-                // 模拟语言ID检查
+                // Simulate languageId check
                 const mockDocument = {
                     languageId: lang
                 } as any;
                 
-                // 测试应该不会抛出异常
+                // Should not throw
                 assert.ok(true, `Should handle ${lang} language`);
             } catch (error) {
                 assert.fail(`Should not throw error for ${lang} language`);
@@ -361,7 +361,7 @@ suite('CompletionManager Test Suite', () => {
     });
 
     test('should handle configuration changes gracefully', () => {
-        // 模拟配置变化
+        // Mock configuration changes
         const mockConfig = {
             get: (key: string) => {
                 if (key === 'enableCodeCompletion') {

@@ -2,12 +2,12 @@ import * as vscode from 'vscode';
 import { IShortcutCommand, IContextMenuItem } from './interfaces/IExtensibleFeature';
 
 /**
- * 默认快捷键命令实现
+ * Default shortcut command implementation
  */
 export class QuickCodeReviewCommand implements IShortcutCommand {
     public readonly id = 'quickCodeReview';
     public readonly name = 'Quick Code Review';
-    public readonly description = '快速代码审查 - 分析当前文件的代码质量';
+    public readonly description = 'Quick code review - analyze the current file’s code quality';
     public readonly keybinding = 'ctrl+shift+r';
     public readonly category = 'Code Quality';
     public enabled = true;
@@ -15,31 +15,31 @@ export class QuickCodeReviewCommand implements IShortcutCommand {
     async execute(): Promise<void> {
         const editor = vscode.window.activeTextEditor;
         if (!editor) {
-            vscode.window.showInformationMessage('请先打开一个文件');
+            vscode.window.showInformationMessage('Please open a file first');
             return;
         }
 
         const document = editor.document;
         const fileName = document.fileName.split('/').pop();
         
-        vscode.window.showInformationMessage(`正在分析 ${fileName} 的代码质量...`);
+        vscode.window.showInformationMessage(`Analyzing code quality of ${fileName}...`);
         
-        // 这里可以集成AI服务进行代码分析
-        // 例如：调用Ollama服务分析代码
+        // Here you can integrate an AI service for code analysis
+        // For example: call the Ollama service to analyze code
         setTimeout(() => {
-            vscode.window.showInformationMessage(`${fileName} 代码分析完成！`);
+            vscode.window.showInformationMessage(`${fileName} code analysis completed!`);
         }, 2000);
     }
 }
 
 /**
- * 默认上下文菜单项实现
+ * Default context menu item implementation
  */
 export class ExplainCodeContextMenu implements IContextMenuItem {
     public readonly id = 'explainCode';
     public readonly name = 'Explain Code';
-    public readonly description = '解释选中的代码';
-    public readonly title = '解释代码';
+    public readonly description = 'Explain the selected code';
+    public readonly title = 'Explain Code';
     public readonly icon = '$(lightbulb)';
     public readonly when = 'editorHasSelection';
     public readonly group = 'ai@1';
@@ -54,28 +54,28 @@ export class ExplainCodeContextMenu implements IContextMenuItem {
         const text = editor.document.getText(selection);
 
         if (!text.trim()) {
-            vscode.window.showInformationMessage('请先选择要解释的代码');
+            vscode.window.showInformationMessage('Please select the code to explain');
             return;
         }
 
-        vscode.window.showInformationMessage('正在使用AI解释选中的代码...');
+        vscode.window.showInformationMessage('Using AI to explain the selected code...');
         
-        // 这里可以集成AI服务解释代码
-        // 例如：调用Ollama服务解释代码
+        // Here you can integrate an AI service to explain code
+        // For example: call the Ollama service to explain code
         setTimeout(() => {
-            vscode.window.showInformationMessage('代码解释完成！');
+            vscode.window.showInformationMessage('Code explanation completed!');
         }, 2000);
     }
 }
 
 /**
- * 文件类型相关的上下文菜单项
+ * File-type related context menu item
  */
 export class OptimizeCodeContextMenu implements IContextMenuItem {
     public readonly id = 'optimizeCode';
     public readonly name = 'Optimize Code';
-    public readonly description = '优化当前文件的代码';
-    public readonly title = '优化代码';
+    public readonly description = 'Optimize the current file’s code';
+    public readonly title = 'Optimize Code';
     public readonly icon = '$(zap)';
     public readonly when = 'resourceExtname == .js || resourceExtname == .ts || resourceExtname == .py';
     public readonly group = 'ai@2';
@@ -89,18 +89,18 @@ export class OptimizeCodeContextMenu implements IContextMenuItem {
         const document = editor.document;
         const fileName = document.fileName.split('/').pop();
         
-        vscode.window.showInformationMessage(`正在优化 ${fileName} 的代码...`);
+        vscode.window.showInformationMessage(`Optimizing code in ${fileName}...`);
         
-        // 这里可以集成AI服务优化代码
-        // 例如：调用Ollama服务提供优化建议
+        // Here you can integrate an AI service to optimize code
+        // For example: call the Ollama service to provide optimization suggestions
         setTimeout(() => {
-            vscode.window.showInformationMessage(`${fileName} 代码优化建议已生成！`);
+            vscode.window.showInformationMessage(`Optimization suggestions for ${fileName} have been generated!`);
         }, 2000);
     }
 }
 
 /**
- * 获取所有默认功能
+ * Get all default features
  */
 export function getDefaultFeatures() {
     return {

@@ -1,8 +1,8 @@
 import * as vscode from 'vscode';
 
 /**
- * LLM服务配置管理器
- * 负责管理不同LLM提供商的配置
+ * LLM service configuration manager
+ * Responsible for managing configurations of different LLM providers
  */
 export class LLMServiceConfig {
     private static instance: LLMServiceConfig;
@@ -20,21 +20,21 @@ export class LLMServiceConfig {
     }
 
     /**
-     * 获取当前LLM提供商
+     * Get current LLM provider
      */
     public getCurrentProvider(): string {
         return this.config.get('llmProvider', 'ollama');
     }
 
     /**
-     * 设置LLM提供商
+     * Set LLM provider
      */
     public async setProvider(provider: string): Promise<void> {
         await this.config.update('llmProvider', provider, vscode.ConfigurationTarget.Global);
     }
 
     /**
-     * 获取Ollama配置
+     * Get Ollama configuration
      */
     public getOllamaConfig() {
         return {
@@ -45,7 +45,7 @@ export class LLMServiceConfig {
     }
 
     /**
-     * 获取LocalAI配置
+     * Get LocalAI configuration
      */
     public getLocalAIConfig() {
         return {
@@ -56,28 +56,28 @@ export class LLMServiceConfig {
     }
 
     /**
-     * 获取默认模型
+     * Get default model
      */
     public getDefaultModel(): string {
         return this.config.get('defaultModel', '');
     }
 
     /**
-     * 设置默认模型
+     * Set default model
      */
     public async setDefaultModel(model: string): Promise<void> {
         await this.config.update('defaultModel', model, vscode.ConfigurationTarget.Global);
     }
 
     /**
-     * 获取所有可用的提供商
+     * Get all available providers
      */
     public getAvailableProviders(): string[] {
         return ['ollama', 'localai'];
     }
 
     /**
-     * 获取提供商特定的配置
+     * Get provider-specific configuration
      */
     public getProviderConfig(provider: string): { baseUrl: string; timeout: number; maxRetries: number } {
         switch (provider) {
@@ -95,7 +95,7 @@ export class LLMServiceConfig {
     }
 
     /**
-     * 验证提供商配置
+     * Validate provider configuration
      */
     public validateProviderConfig(provider: string): { isValid: boolean; errors: string[] } {
         const errors: string[] = [];
@@ -120,7 +120,7 @@ export class LLMServiceConfig {
     }
 
     /**
-     * 获取配置摘要
+     * Get configuration summary
      */
     public getConfigSummary(): string {
         const provider = this.getCurrentProvider();

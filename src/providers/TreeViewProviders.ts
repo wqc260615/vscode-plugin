@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { SessionManager, ChatSession } from '../services/sessionManager';
 import { ProjectContextProcessor, ReferenceFile } from '../services/projectContextProcessor';
 
-// 上下文文件树视图提供者
+// Context file tree view provider
 export class ContextTreeProvider implements vscode.TreeDataProvider<ContextTreeItem> {
     private _onDidChangeTreeData: vscode.EventEmitter<ContextTreeItem | undefined | null | void> = new vscode.EventEmitter<ContextTreeItem | undefined | null | void>();
     readonly onDidChangeTreeData: vscode.Event<ContextTreeItem | undefined | null | void> = this._onDidChangeTreeData.event;
@@ -19,14 +19,14 @@ export class ContextTreeProvider implements vscode.TreeDataProvider<ContextTreeI
 
     getChildren(element?: ContextTreeItem): Thenable<ContextTreeItem[]> {
         if (!element) {
-            // 返回根级别项目
+            // Return root-level items
             const items: ContextTreeItem[] = [
                 new ContextTreeItem('Reference Files', 'reference-root', vscode.TreeItemCollapsibleState.Expanded),
                 new ContextTreeItem('Project Files', 'project-root', vscode.TreeItemCollapsibleState.Collapsed)
             ];
             return Promise.resolve(items);
         } else {
-            // 返回子项目
+            // Return child items
             if (element.contextValue === 'reference-root') {
                 const referenceFiles = this.contextProcessor.getReferenceFiles();
                 return Promise.resolve(referenceFiles.map(file => 
@@ -34,7 +34,7 @@ export class ContextTreeProvider implements vscode.TreeDataProvider<ContextTreeI
                 ));
             } else if (element.contextValue === 'project-root') {
                 const sourceFiles = this.contextProcessor.getSourceFiles();
-                return Promise.resolve(sourceFiles.slice(0, 20).map(file => // 限制显示数量
+                return Promise.resolve(sourceFiles.slice(0, 20).map(file => // Limit display count
                     new ContextTreeItem(file.name, 'project-file', vscode.TreeItemCollapsibleState.None, file.path)
                 ));
             }
@@ -78,7 +78,7 @@ export class ContextTreeItem extends vscode.TreeItem {
     }
 }
 
-// AI助手命令提供者
+// AI Assistant command provider
 export class AIAssistantCommands {
     constructor(
         private sessionManager: SessionManager,
@@ -87,7 +87,7 @@ export class AIAssistantCommands {
     ) {}
 
     registerCommands(context: vscode.ExtensionContext) {
-        // 上下文文件相关命令
+        // Context file related commands
         const addReferenceFileCommand = vscode.commands.registerCommand('aiAssistant.addReferenceFile', async () => {
             const fileUri = await vscode.window.showOpenDialog({
                 canSelectFiles: true,
@@ -135,7 +135,7 @@ export class AIAssistantCommands {
             }
         });
 
-        // 发送选中代码到AI助手
+        // Send selected code to AI Assistant
         const sendToAssistantCommand = vscode.commands.registerCommand('aiAssistant.sendToAssistant', () => {
             const editor = vscode.window.activeTextEditor;
             if (editor) {
@@ -143,9 +143,9 @@ export class AIAssistantCommands {
                 const selectedText = editor.document.getText(selection);
                 
                 if (selectedText) {
-                    // 在这里我们可以触发AI助手视图的消息发送
+                    // We could trigger sending a message to the AI Assistant view here
                     vscode.window.showInformationMessage(`Selected ${selectedText.length} characters. Please use the AI Assistant panel to send your question.`);
-                    // 可以考虑自动打开AI助手视图
+                    // Optionally auto-focus the AI Assistant view
                     vscode.commands.executeCommand('aiAssistant.chatView.focus');
                 } else {
                     vscode.window.showWarningMessage('Please select some code first');
@@ -153,7 +153,7 @@ export class AIAssistantCommands {
             }
         });
 
-        // 注册所有命令
+        // Register all commands
         context.subscriptions.push(
             addReferenceFileCommand,
             removeReferenceFileCommand,

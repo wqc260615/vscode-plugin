@@ -15,7 +15,7 @@ export class CodeCompletionProvider implements vscode.InlineCompletionItemProvid
     private llmServiceManager: LLMServiceManager;
     private errorHandler: LLMErrorHandler;
 
-    // 添加状态变化回调
+    // Add state change callback
     public onCompletionStateChanged: ((hasCompletion: boolean) => void) | null = null;
 
     constructor(llmServiceManager: LLMServiceManager) {
@@ -24,7 +24,7 @@ export class CodeCompletionProvider implements vscode.InlineCompletionItemProvid
     }
 
     /**
-     * 实现 InlineCompletionItemProvider 接口
+     * Implement InlineCompletionItemProvider interface
      */
     async provideInlineCompletionItems(
         document: vscode.TextDocument,
@@ -33,13 +33,13 @@ export class CodeCompletionProvider implements vscode.InlineCompletionItemProvid
         token: vscode.CancellationToken
     ): Promise<vscode.InlineCompletionItem[] | vscode.InlineCompletionList | null> {
         
-        // 检查是否启用了代码补全
+        // Check whether code completion is enabled
         const config = vscode.workspace.getConfiguration('aiAssistant');
         if (!config.get('enableCodeCompletion', true)) {
             return null;
         }
 
-        // 如果正在生成，返回空
+        // If generating, return null
         if (this.isGenerating) {
             return null;
         }
@@ -47,25 +47,25 @@ export class CodeCompletionProvider implements vscode.InlineCompletionItemProvid
         try {
             this.isGenerating = true;
 
-            // 获取代码上下文
+            // Get code context
             const codeContext = this.getCodeContext(document, position, 1500);
             if (!codeContext || codeContext.trim().length === 0) {
                 return null;
             }
 
-            // 从LLM服务获取补全
+            // Get completion from LLM service
             const completion = await this.getCompletionFromLLM(codeContext);
             if (!completion || completion.trim().length === 0) {
                 return null;
             }
 
-            // 创建 InlineCompletionItem
+            // Create InlineCompletionItem
             const item = new vscode.InlineCompletionItem(
                 completion,
                 new vscode.Range(position, position)
             );
 
-            // 设置补全项的标签
+            // Set label for the completion item
             item.filterText = completion;
 
             return [item];
@@ -83,7 +83,7 @@ export class CodeCompletionProvider implements vscode.InlineCompletionItemProvid
     }
 
     /**
-     * 检查是否为支持的编程语言
+     * Check if the language is supported
      */
     private isSupportedLanguage(languageId: string): boolean {
         const supportedLanguages = [
@@ -114,52 +114,52 @@ export class CodeCompletionProvider implements vscode.InlineCompletionItemProvid
     }
 
     /**
-     * 清理补全文本，移除多余的空行和格式问题
+     * Clean completion text, remove extra blank lines and formatting issues
      */
     private cleanCompletionText(text: string): string {
-        // 首先trim整个文本
+        // First, trim the entire text
         let cleaned = text.trim();
         
-        // 移除可能的markdown代码块标记
+        // Remove possible markdown code block markers
         cleaned = cleaned.replace(/^```[\w]*\n?/, '');
         cleaned = cleaned.replace(/\n?```$/, '');
         
-        // 移除开头的多余空行和只包含空白字符的行
+        // Remove leading extra blank lines and lines with only whitespace
         cleaned = cleaned.replace(/^[\s\n]*\n/, '');
         
-        // 移除结尾的多余空行
+        // Remove trailing extra blank lines
         cleaned = cleaned.replace(/\n+\s*$/, '');
         
-        // 移除连续的空行，最多保留一个空行
+        // Remove consecutive blank lines, keep at most one
         cleaned = cleaned.replace(/\n\s*\n\s*\n/g, '\n\n');
         
-        // 如果文本开头有空白字符但不是缩进，移除它们
+        // If leading whitespace exists but is not indentation, remove it
         const lines = cleaned.split('\n');
         if (lines.length > 0 && lines[0].match(/^\s+$/)) {
-            lines.shift(); // 移除第一行如果它只包含空白
+            lines.shift(); // Remove the first line if it only contains whitespace
             cleaned = lines.join('\n');
         }
         
-        // 确保不会返回空字符串
+        // Ensure not returning an empty string
         return cleaned || '';
     }
 
     /**
-     * 显示代码补全预览 (已弃用，现在使用 InlineCompletionProvider)
+     * Show code completion preview (deprecated, now using InlineCompletionProvider)
      */
     public showCompletion(editor: vscode.TextEditor, completion: string) {
-        // 这个方法保留是为了向后兼容，实际补全现在通过 provideInlineCompletionItems 处理
+        // Kept for backward compatibility; actual completion handled by provideInlineCompletionItems
     }
 
     /**
-     * 清除当前的补全预览 (已弃用)
+     * Clear current completion preview (deprecated)
      */
     public clearCompletion(editor: vscode.TextEditor) {
-        // 现在由 VS Code 的 InlineCompletionProvider 自动处理
+        // Now handled automatically by VS Code's InlineCompletionProvider
     }
 
     /**
-     * 接受当前的补全建议
+     * Accept the current completion suggestion
      */
     public async acceptCompletion(editor: vscode.TextEditor): Promise<boolean> {
         if (!this.currentSuggestion) {
@@ -170,7 +170,7 @@ export class CodeCompletionProvider implements vscode.InlineCompletionItemProvid
         this.clearCompletion(editor);
 
         try {
-            // 插入补全文本
+            // Insert completion text
             await editor.edit(editBuilder => {
                 editBuilder.insert(suggestion.range.start, suggestion.insertText);
             });
@@ -181,42 +181,42 @@ export class CodeCompletionProvider implements vscode.InlineCompletionItemProvid
     }
 
     /**
-     * 检查是否有活动的补全
+     * Check if there is an active completion
      */
     public hasActiveCompletion(): boolean {
         return this.currentSuggestion !== null;
     }
 
     /**
-     * 请求代码补全
+     * Request code completion
      */
     public async requestCompletion(editor: vscode.TextEditor, llmServiceManager: LLMServiceManager): Promise<void> {
-        // 如果正在生成，跳过
+        // If generating, skip
         if (this.isGenerating) {
             return;
         }
 
-        // 清除之前的定时器
+        // Clear previous timer
         if (this.completionTimeout) {
             clearTimeout(this.completionTimeout);
 
 
         }
 
-        // 设置防抖延迟
+        // Set debounce delay
         this.completionTimeout = setTimeout(async () => {
             await this.performCompletion(editor, llmServiceManager);
-        }, 500); // 500ms 防抖
+        }, 500); // 500ms debounce
     }
 
     /**
-     * 执行实际的补全请求
+     * Perform the actual completion request
      */
     private async performCompletion(editor: vscode.TextEditor, llmServiceManager: LLMServiceManager): Promise<void> {
         try {
             this.isGenerating = true;
 
-            // 增加上下文字符数以获取更多信息
+            // Increase context characters to get more information
             const context = this.getCodeContext(editor.document, editor.selection.active, 1500);
             if (!context || context.trim().length === 0) {
                 return;
@@ -234,64 +234,64 @@ export class CodeCompletionProvider implements vscode.InlineCompletionItemProvid
     }
 
     /**
-     * 获取代码上下文
+     * Get code context
      */
     private getCodeContext(document: vscode.TextDocument, position: vscode.Position, contextChars: number = 1500): string {
-        // 计算前后文本的分配比例 (60% 前文，40% 后文)
+        // Calculate allocation ratio of surrounding text (60% before, 40% after)
         const beforeChars = Math.floor(contextChars * 0.6);
         const afterChars = contextChars - beforeChars;
 
-        // 获取光标前的文本
+        // Get text before the cursor
         const startPosition = new vscode.Position(0, 0);
         const beforeRange = new vscode.Range(startPosition, position);
         let beforeText = document.getText(beforeRange);
 
-        // 如果前文太长，截取最后部分
+        // If the preceding text is too long, keep only the tail
         if (beforeText.length > beforeChars) {
             beforeText = beforeText.substring(beforeText.length - beforeChars);
             
-            // 确保不会在单词中间截断，找到第一个完整的行
+            // Ensure not cutting in the middle of a word; find first complete line
             const firstNewlineIndex = beforeText.indexOf('\n');
             if (firstNewlineIndex > 0) {
                 beforeText = beforeText.substring(firstNewlineIndex + 1);
             }
         }
 
-        // 获取光标后的文本
+        // Get text after the cursor
         const endPosition = new vscode.Position(document.lineCount - 1, document.lineAt(document.lineCount - 1).text.length);
         const afterRange = new vscode.Range(position, endPosition);
         let afterText = document.getText(afterRange);
 
-        // 如果后文太长，截取前面部分
+        // If the trailing text is too long, keep only the head
         if (afterText.length > afterChars) {
             afterText = afterText.substring(0, afterChars);
             
-            // 确保不会在单词中间截断，找到最后一个完整的行
+            // Ensure not cutting in the middle of a word; find last complete line
             const lastNewlineIndex = afterText.lastIndexOf('\n');
             if (lastNewlineIndex > 0 && lastNewlineIndex < afterText.length - 1) {
                 afterText = afterText.substring(0, lastNewlineIndex + 1);
             }
         }
 
-        // 构建完整的上下文，在光标位置插入 <BLANK>
+        // Build full context with <BLANK> inserted at cursor position
         const context = beforeText + '<BLANK>' + afterText;
         
         return context;
     }
 
     /**
-     * 从LLM获取补全建议
+     * Get completion suggestion from LLM
      */
     private async getCompletionFromLLM(context: string): Promise<string> {
         try {
             
-            // 获取LLM服务
+            // Get LLM service
             const llmService = this.llmServiceManager.getCurrentService();
             if (!llmService) {
                 return '';
             }
             
-            // 获取首选模型
+            // Get preferred model
             const preferredModel = await llmService.getPreferredModel();
             if (!preferredModel) {
                 return '';
@@ -312,22 +312,22 @@ ${context}
 
 Complete the code at <BLANK>:`;
 
-            // 优先使用 generate 方法，如果失败则回退到 chat 方法
+            // Prefer using generate; fallback to chat on failure
             try {
                 const response = await llmService.generate(preferredModel, prompt);
                 let completion = response.trim();
                 
-                // 清理响应，移除可能的代码块标记
+                // Clean the response, removing possible code block markers
                 completion = completion.replace(/^```[\w]*\n?/, '');
                 completion = completion.replace(/\n?```$/, '');
                 
-                // 清理并格式化补全文本
+                // Clean and format completion text
                 completion = this.cleanCompletionText(completion);
                 
                 return completion;
             } catch (generateError) {
-                // 回退到 chat API
-                // 创建一个临时会话对象
+                // Fallback to chat API
+                // Create a temporary session object
                 const tempSession = {
                     id: 'temp',
                     name: 'Temporary Session',
@@ -339,7 +339,7 @@ Complete the code at <BLANK>:`;
                 const chatResponse = await llmService.chat(preferredModel, prompt, tempSession);
                 let completion = chatResponse.trim();
                 
-                // 清理并格式化补全文本
+                // Clean and format completion text
                 completion = this.cleanCompletionText(completion);
                 
                 return completion;
@@ -350,25 +350,25 @@ Complete the code at <BLANK>:`;
     }
 
     /**
-     * 处理文档变化事件
+     * Handle document change event
      */
     public onDocumentChange(editor: vscode.TextEditor, change: vscode.TextDocumentChangeEvent) {
-        // 如果文档有变化，清除当前的补全预览
+        // Clear current completion preview when document changes
         if (change.contentChanges.length > 0) {
             this.clearCompletion(editor);
         }
     }
 
     /**
-     * 处理光标位置变化
+     * Handle cursor position change
      */
     public onCursorChange(editor: vscode.TextEditor) {
-        // 光标移动时清除补全预览
+        // Clear completion preview when cursor moves
         this.clearCompletion(editor);
     }
 
     /**
-     * 释放资源
+     * Release resources
      */
     public dispose() {
         if (this.completionTimeout) {
@@ -376,7 +376,7 @@ Complete the code at <BLANK>:`;
         }
         this.currentSuggestion = null;
 
-        // 通知状态变化
+        // Notify state change
         if (this.onCompletionStateChanged) {
             this.onCompletionStateChanged(false);
         }

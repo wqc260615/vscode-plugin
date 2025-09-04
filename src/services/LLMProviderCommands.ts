@@ -3,8 +3,8 @@ import { LLMServiceManager } from './LLMServiceManager';
 import { LLMServiceConfig } from './LLMServiceConfig';
 
 /**
- * LLM提供商管理命令
- * 提供切换和配置不同LLM服务的命令
+ * LLM provider management commands
+ * Provides commands to switch and configure different LLM services
  */
 export class LLMProviderCommands {
     private llmServiceManager: LLMServiceManager;
@@ -16,28 +16,28 @@ export class LLMProviderCommands {
     }
 
     /**
-     * 注册所有命令
+     * Register all commands
      */
     public registerCommands(context: vscode.ExtensionContext): void {
-        // 切换LLM提供商
+        // Switch LLM provider
         const switchProviderCommand = vscode.commands.registerCommand(
             'aiAssistant.switchLLMProvider',
             () => this.switchProvider()
         );
 
-        // 显示当前配置
+        // Show current configuration
         const showConfigCommand = vscode.commands.registerCommand(
             'aiAssistant.showLLMConfig',
             () => this.showConfig()
         );
 
-        // 测试连接
+        // Test connection
         const testConnectionCommand = vscode.commands.registerCommand(
             'aiAssistant.testLLMConnection',
             () => this.testConnection()
         );
 
-        // 刷新服务
+        // Refresh service
         const refreshServiceCommand = vscode.commands.registerCommand(
             'aiAssistant.refreshLLMService',
             () => this.refreshService()
@@ -52,7 +52,7 @@ export class LLMProviderCommands {
     }
 
     /**
-     * 切换LLM提供商
+     * Switch LLM provider
      */
     private async switchProvider(): Promise<void> {
         const availableProviders = this.config.getAvailableProviders();
@@ -87,7 +87,7 @@ export class LLMProviderCommands {
     }
 
     /**
-     * 显示当前配置
+     * Show current configuration
      */
     private async showConfig(): Promise<void> {
         const configSummary = this.config.getConfigSummary();
@@ -105,7 +105,7 @@ export class LLMProviderCommands {
     }
 
     /**
-     * 测试连接
+     * Test connection
      */
     private async testConnection(): Promise<void> {
         const currentProvider = this.config.getCurrentProvider();
@@ -137,7 +137,7 @@ export class LLMProviderCommands {
     }
 
     /**
-     * 刷新服务
+     * Refresh service
      */
     private async refreshService(): Promise<void> {
         try {
@@ -149,7 +149,7 @@ export class LLMProviderCommands {
     }
 
     /**
-     * 获取提供商描述
+     * Get provider description
      */
     private getProviderDescription(provider: string): string {
         switch (provider) {
@@ -163,7 +163,7 @@ export class LLMProviderCommands {
     }
 
     /**
-     * 生成配置HTML
+     * Generate configuration HTML
      */
     private getConfigHtml(configSummary: string, currentProvider: string, availableProviders: string[]): string {
         return `

@@ -30,7 +30,7 @@ export class OllamaService implements ILLMService {
         this.cache = new ResponseCache();
         this.performanceMonitor = PerformanceMonitor.getInstance();
 
-        // 监听配置变化
+        // Listen for configuration changes
         vscode.workspace.onDidChangeConfiguration(e => {
             if (e.affectsConfiguration('aiAssistant.ollamaUrl')) {
                 this.baseUrl = this.getOllamaUrl();
@@ -45,7 +45,7 @@ export class OllamaService implements ILLMService {
     }
 
     /**
-     * 获取可用的模型列表
+     * Get available models
      */
     public async getModels(): Promise<string[]> {
         try {
@@ -75,7 +75,7 @@ export class OllamaService implements ILLMService {
     }
 
     /**
-     * 获取首选模型（自动选择最佳可用模型）
+     * Get preferred model (auto-select best available)
      */
     public async getPreferredModel(): Promise<string> {
         try {
@@ -123,7 +123,7 @@ export class OllamaService implements ILLMService {
     }
 
     /**
-     * 检查Ollama服务是否可用
+     * Check whether the Ollama service is available
      */
     public async isServiceAvailable(): Promise<boolean> {
         try {
@@ -162,7 +162,7 @@ export class OllamaService implements ILLMService {
     }
 
     /**
-     * 发送聊天请求到Ollama（流式响应）
+     * Send chat request to Ollama (streaming response)
      */
     public async chatStream(
         model: string,
@@ -222,19 +222,19 @@ export class OllamaService implements ILLMService {
 
         try {
             await this.errorHandler.withRetry(async () => {
-                // 首先验证服务可用性
+                // First validate service availability
                 const isAvailable = await this.isServiceAvailable();
                 if (!isAvailable) {
                     throw new Error('Ollama service is not available');
                 }
 
-                // 构建消息历史
+                // Build message history
                 const messages = session.messages.map(msg => ({
                     role: msg.isUser ? 'user' : 'assistant',
                     content: msg.content
                 }));
 
-                // 添加当前用户消息
+                // Add current user message
                 messages.push({
                     role: 'user',
                     content: prompt
@@ -277,7 +277,7 @@ export class OllamaService implements ILLMService {
 
                         buffer += decoder.decode(value, { stream: true });
                         const lines = buffer.split('\n');
-                        buffer = lines.pop() || ''; // 保留未完成的行
+                        buffer = lines.pop() || ''; // Keep the unfinished line
 
                         for (const line of lines) {
                             if (line.trim()) {
@@ -308,10 +308,10 @@ export class OllamaService implements ILLMService {
                 promptLength: prompt.length 
             });
             
-            // 通知用户错误
+            // Notify user of the error
             this.errorHandler.showErrorToUser(errorDetails, true).then(action => {
                 if (action === 'retry') {
-                    // 用户选择重试
+                    // User chose to retry
                     setTimeout(() => {
                         this.chatStream(model, prompt, session, onChunk, onComplete, onError, userStartTime);
                     }, 1000);
@@ -323,12 +323,12 @@ export class OllamaService implements ILLMService {
     }
 
     /**
-     * 发送非流式聊天请求
+     * Send non-streaming chat request
      */
     public async chat(model: string, prompt: string, session: ChatSession): Promise<string> {
         try {
             return await this.errorHandler.withRetry(async () => {
-                // 检查缓存
+                // Check cache
                 const cacheKey = this.cache.generateKey(model, prompt + JSON.stringify(session.messages));
                 const cachedResponse = this.cache.get(cacheKey);
                 if (cachedResponse) {
@@ -336,7 +336,7 @@ export class OllamaService implements ILLMService {
                     return cachedResponse;
                 }
 
-                // 验证服务可用性
+                // Validate service availability
                 const isAvailable = await this.isServiceAvailable();
                 if (!isAvailable) {
                     throw new Error('Ollama service is not available');
@@ -374,7 +374,7 @@ export class OllamaService implements ILLMService {
                 const data = await response.json() as { message?: { content?: string } };
                 const responseContent = data.message?.content || 'No response received';
                 
-                // 缓存响应
+                // Cache response
                 this.cache.set(cacheKey, responseContent);
                 
                 return responseContent;
@@ -386,7 +386,7 @@ export class OllamaService implements ILLMService {
                 promptLength: prompt.length 
             });
             
-            // 尝试从缓存获取备用响应
+            // Try to get a fallback response from cache
             const fallbackKey = this.cache.generateKey(model, prompt);
             const fallbackResponse = this.cache.get(fallbackKey);
             if (fallbackResponse) {
@@ -400,27 +400,27 @@ export class OllamaService implements ILLMService {
     }
 
     /**
-    * 生成简单文本（不包含会话上下文）- 改进版本
+    * Generate plain text (without session context) - improved version
     */
     public async generate(model: string, prompt: string): Promise<string> {
         const startTime = performance.now();
         
         try {
             const result = await this.errorHandler.withRetry(async () => {
-                // 检查缓存
+                // Check cache
                 const cacheKey = this.cache.generateKey(model, prompt);
                 const cachedResponse = this.cache.get(cacheKey);
                 if (cachedResponse) {
                     return cachedResponse;
                 }
 
-                // 验证服务可用性
+                // Validate service availability
                 const isAvailable = await this.isServiceAvailable();
                 if (!isAvailable) {
                     throw new Error('Ollama service is not available');
                 }
 
-                // 首先检查模型是否存在
+                // First check whether the model exists
                 const availableModels = await this.getModels();
                 if (!availableModels.includes(model)) {
                     throw new Error(`Model '${model}' not found. Available models: ${availableModels.join(', ')}`);
@@ -442,7 +442,7 @@ export class OllamaService implements ILLMService {
                 });
 
                 if (!response.ok) {
-                    // 如果 generate API 不可用（404），尝试使用 chat API
+                    // If the generate API is unavailable (404), try using the chat API
                     if (response.status === 404) {
                         console.warn('Generate API not available, falling back to chat API');
                         return await this.generateWithChatAPI(model, prompt);
@@ -453,7 +453,7 @@ export class OllamaService implements ILLMService {
                 const data = await response.json() as { response?: string };
                 const responseContent = data.response || 'No response received';
                 
-                // 缓存响应
+                // Cache response
                 this.cache.set(cacheKey, responseContent);
                 
                 return responseContent;
@@ -480,13 +480,13 @@ export class OllamaService implements ILLMService {
                 promptLength: prompt.length 
             });
 
-            // 如果是网络错误或404，尝试使用 chat API 作为备选
+            // If it's a network error or 404, try using the chat API as a fallback
             if (error instanceof Error && (error.message.includes('404') || error.message.includes('fetch'))) {
                 try {
                     console.log('Trying chat API as fallback...');
                     const fallbackResponse = await this.generateWithChatAPI(model, prompt);
                     
-                    // 缓存备用响应
+                    // Cache fallback response
                     const cacheKey = this.cache.generateKey(model, prompt);
                     this.cache.set(cacheKey, fallbackResponse);
                     
@@ -497,7 +497,7 @@ export class OllamaService implements ILLMService {
                 }
             }
 
-            // 尝试从缓存获取备用响应
+            // Try to get a fallback response from cache
             const fallbackKey = this.cache.generateKey(model, prompt);
             const fallbackResponse = this.cache.get(fallbackKey);
             if (fallbackResponse) {
@@ -511,7 +511,7 @@ export class OllamaService implements ILLMService {
     }
 
     /**
-     * 使用 chat API 作为 generate 的备选方案
+     * Use the chat API as a fallback for generate
      */
     private async generateWithChatAPI(model: string, prompt: string): Promise<string> {
         const requestBody = {
@@ -542,12 +542,12 @@ export class OllamaService implements ILLMService {
     }
 
     /**
-     * 拉取模型
+     * Pull a model
      */
     public async pullModel(modelName: string, onProgress?: (progress: any) => void): Promise<boolean> {
         try {
             return await this.errorHandler.withRetry(async () => {
-                // 验证服务可用性
+                // Validate service availability
                 const isAvailable = await this.isServiceAvailable();
                 if (!isAvailable) {
                     throw new Error('Ollama service is not available');
@@ -611,7 +611,7 @@ export class OllamaService implements ILLMService {
     }
 
     /**
-     * 删除模型
+     * Delete a model
      */
     public async deleteModel(modelName: string): Promise<boolean> {
         try {
@@ -641,7 +641,7 @@ export class OllamaService implements ILLMService {
     }
 
     /**
-     * 获取模型信息
+     * Get model information
      */
     public async getModelInfo(modelName: string): Promise<any> {
         try {

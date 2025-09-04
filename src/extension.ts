@@ -14,19 +14,19 @@ import { LLMProviderCommands } from './services/LLMProviderCommands';
 export function activate(context: vscode.ExtensionContext) {
     console.log('AI Assistant extension is now active!');
 
-    // 初始化服务
+    // Initialize services
     const sessionManager = new SessionManager(context);
     const contextProcessor = new ProjectContextProcessor();
     const llmServiceManager = LLMServiceManager.getInstance();
 
-    // 初始化项目上下文
+    // Initialize project context
     contextProcessor.initProjectContext();
 
-    // 初始化代码补全功能
+    // Initialize code completion feature
     const completionManager = new CompletionManager(llmServiceManager);
     completionManager.initialize(context);
 
-    // 注册 Inline Completion Provider
+    // Register Inline Completion Provider
     const inlineCompletionProvider = completionManager.getCompletionProvider();
     const inlineCompletionDisposable = vscode.languages.registerInlineCompletionItemProvider(
         [
@@ -48,17 +48,17 @@ export function activate(context: vscode.ExtensionContext) {
     );
     context.subscriptions.push(inlineCompletionDisposable);
 
-    // 初始化inline chat功能
+    // Initialize inline chat feature
     const inlineChatProvider = new InlineChatProvider(llmServiceManager, contextProcessor);
 
-    // 初始化状态栏管理器
+    // Initialize status bar manager
     const statusBarManager = new StatusBarManager(llmServiceManager);
 
-    // 初始化可扩展功能管理器
+    // Initialize extensible feature manager
     const extensibleFeatureManager = ExtensibleFeatureManager.getInstance();
     const defaultFeatures = getDefaultFeatures();
     
-    // 注册默认功能
+    // Register default features
     defaultFeatures.shortcuts.forEach(shortcut => {
         extensibleFeatureManager.registerShortcutCommand(shortcut);
     });
@@ -67,26 +67,26 @@ export function activate(context: vscode.ExtensionContext) {
         extensibleFeatureManager.registerContextMenuItem(contextMenu);
     });
 
-    // 注册LLM提供商管理命令
+    // Register LLM provider management commands
     const llmProviderCommands = new LLMProviderCommands();
     llmProviderCommands.registerCommands(context);
 
-    // 创建树视图提供者
+    // Create tree view provider
     const contextTreeProvider = new ContextTreeProvider(contextProcessor);
 
-    // 注册主聊天视图提供者
+    // Register main chat view provider
     const chatViewProvider = new AIChatViewProvider(context.extensionUri, context);
     context.subscriptions.push(
         vscode.window.registerWebviewViewProvider(AIChatViewProvider.viewType, chatViewProvider)
     );
 
-    // 注册树视图
+    // Register tree view
     const contextTreeView = vscode.window.createTreeView('aiAssistant.contextView', {
         treeDataProvider: contextTreeProvider,
         showCollapseAll: true
     });
 
-    // 注册命令
+    // Register commands
     const commandsManager = new AIAssistantCommands(
         sessionManager,
         contextProcessor,
@@ -94,27 +94,27 @@ export function activate(context: vscode.ExtensionContext) {
     );
     commandsManager.registerCommands(context);
 
-    // 注册inline chat命令
+    // Register inline chat command
     const inlineChatCommand = vscode.commands.registerCommand('aiAssistant.showInlineChat', () => {
         inlineChatProvider.showInlineChat();
     });
     context.subscriptions.push(inlineChatCommand);
 
-    // 注册状态栏点击命令
+    // Register status bar click command
     const checkConnectionCommand = vscode.commands.registerCommand('aiAssistant.checkConnection', () => {
         statusBarManager.handleStatusBarClick();
     });
     context.subscriptions.push(checkConnectionCommand);
 
-    // 注册工作区变化监听器
+    // Register workspace change listener
     const workspaceWatcher = vscode.workspace.onDidChangeWorkspaceFolders(async () => {
         await contextProcessor.initProjectContext();
         contextTreeProvider.refresh();
     });
 
-    // 注册文件保存监听器，自动更新项目上下文
+    // Register file save listener to auto-update project context
     const fileSaveWatcher = vscode.workspace.onDidSaveTextDocument(async (document) => {
-        // 如果保存的是源代码文件，刷新项目上下文
+        // If a source code file was saved, refresh the project context
         const ext = document.fileName.split('.').pop()?.toLowerCase();
         if (ext && ['js', 'ts', 'jsx', 'tsx', 'py', 'java', 'cpp', 'c', 'cs', 'php', 'rb', 'go', 'rs', 'swift', 'kt'].includes(ext)) {
             await contextProcessor.initProjectContext();
@@ -122,21 +122,21 @@ export function activate(context: vscode.ExtensionContext) {
         }
     });
 
-    // 创建状态栏项目
+    // Create status bar item
     const statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
     statusBarItem.text = "$(robot) AI Assistant";
     statusBarItem.command = 'aiAssistant.chatView.focus';
     statusBarItem.tooltip = "Open AI Assistant";
     statusBarItem.show();
 
-    // 创建代码补全状态栏项目
+    // Create code completion status bar item
     const completionStatusBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 99);
     completionStatusBar.text = "$(lightbulb) AI Completion";
     completionStatusBar.command = 'aiAssistant.toggleCompletion';
     completionStatusBar.tooltip = "Toggle AI Code Completion";
     completionStatusBar.show();
 
-    // 更新补全状态栏
+    // Update completion status bar
     const updateCompletionStatus = () => {
         const config = vscode.workspace.getConfiguration('aiAssistant');
         const enabled = config.get('enableCodeCompletion', true);
@@ -146,14 +146,14 @@ export function activate(context: vscode.ExtensionContext) {
 
     updateCompletionStatus();
 
-    // 监听配置变化
+    // Listen for configuration changes
     const configWatcher = vscode.workspace.onDidChangeConfiguration(e => {
         if (e.affectsConfiguration('aiAssistant.enableCodeCompletion')) {
             updateCompletionStatus();
         }
     });
 
-    // 添加所有订阅
+    // Add all subscriptions
     context.subscriptions.push(
         contextTreeView,
         workspaceWatcher,
@@ -161,12 +161,12 @@ export function activate(context: vscode.ExtensionContext) {
         statusBarItem,
         completionStatusBar,
         configWatcher,
-        statusBarManager,  // 确保在扩展停用时正确清理状态栏管理器
-        completionManager,  // 确保在扩展停用时正确清理
-        extensibleFeatureManager  // 确保在扩展停用时正确清理可扩展功能管理器
+        statusBarManager,  // Ensure proper cleanup of the status bar manager when the extension is deactivated
+        completionManager,  // Ensure proper cleanup when the extension is deactivated
+        extensibleFeatureManager  // Ensure proper cleanup of the extensible feature manager when the extension is deactivated
     );
 
-    // 显示激活消息
+    // Show activation message
     vscode.window.showInformationMessage('AI Assistant is ready! Click the robot icon in the activity bar to get started.');
 }
 

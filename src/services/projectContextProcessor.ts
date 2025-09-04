@@ -18,7 +18,7 @@ export class ProjectContextProcessor {
         this.maxContextFiles = vscode.workspace.getConfiguration('aiAssistant')
             .get('maxContextFiles', 50);
         
-        // 监听配置变化
+        // Listen for configuration changes
         vscode.workspace.onDidChangeConfiguration(e => {
             if (e.affectsConfiguration('aiAssistant.maxContextFiles')) {
                 this.maxContextFiles = vscode.workspace.getConfiguration('aiAssistant')
@@ -28,7 +28,7 @@ export class ProjectContextProcessor {
     }
 
     /**
-     * 添加用户手动选择的参考文件
+     * Add a manually selected reference file
      */
     public async addReferenceFile(filePath: string): Promise<boolean> {
         try {
@@ -42,7 +42,7 @@ export class ProjectContextProcessor {
                 type: 'reference'
             };
 
-            // 检查是否已经添加过
+            // Check whether the file has already been added
             const existingIndex = this.referenceFiles.findIndex(f => f.path === filePath);
             if (existingIndex >= 0) {
                 this.referenceFiles[existingIndex] = referenceFile;
@@ -58,7 +58,7 @@ export class ProjectContextProcessor {
     }
 
     /**
-     * 移除参考文件
+     * Remove a reference file
      */
     public removeReferenceFile(filePath: string): boolean {
         const index = this.referenceFiles.findIndex(f => f.path === filePath);
@@ -70,7 +70,7 @@ export class ProjectContextProcessor {
     }
 
     /**
-     * 获取当前项目的源文件上下文
+     * Initialize current project source file context
      */
     public async initProjectContext(): Promise<void> {
         this.sourceFiles = [];
@@ -81,7 +81,7 @@ export class ProjectContextProcessor {
         }
 
         try {
-            // 查找项目中的源代码文件
+            // Find source code files in the project
             const files = await vscode.workspace.findFiles(
                 '**/*.{js,ts,jsx,tsx,py,java,cpp,c,cs,php,rb,go,rs,swift,kt}',
                 '**/node_modules/**',
@@ -93,14 +93,14 @@ export class ProjectContextProcessor {
                     const document = await vscode.workspace.openTextDocument(file);
                     const fileName = path.basename(file.fsPath);
                     
-                    // 如果是Java文件，提取类和方法信息
+                    // For Java files, extract class and method info
                     let content = document.getText();
                     if (fileName.endsWith('.java')) {
                         content = this.extractJavaStructure(content);
                     } else if (fileName.endsWith('.ts') || fileName.endsWith('.js')) {
                         content = this.extractTypeScriptStructure(content);
                     } else {
-                        // 对于其他文件，限制内容长度
+                        // For other files, limit content length
                         content = content.substring(0, 2000);
                     }
 
@@ -122,7 +122,7 @@ export class ProjectContextProcessor {
     }
 
     /**
-     * 提取Java文件的结构信息
+     * Extract structural info from Java files
      */
     private extractJavaStructure(content: string): string {
         const lines = content.split('\n');
@@ -134,11 +134,11 @@ export class ProjectContextProcessor {
         for (const line of lines) {
             const trimmed = line.trim();
             
-            // 跟踪缩进级别
+            // Track indentation level
             const leadingSpaces = line.length - line.trimLeft().length;
             indentLevel = Math.floor(leadingSpaces / 4);
 
-            // 匹配类声明
+            // Match class declaration
             const classMatch = trimmed.match(/(?:public|private|protected)?\s*(?:abstract)?\s*class\s+(\w+)/);
             if (classMatch) {
                 currentClass = classMatch[1];
@@ -146,7 +146,7 @@ export class ProjectContextProcessor {
                 continue;
             }
 
-            // 匹配接口声明
+            // Match interface declaration
             const interfaceMatch = trimmed.match(/(?:public|private|protected)?\s*interface\s+(\w+)/);
             if (interfaceMatch) {
                 currentClass = interfaceMatch[1];
@@ -154,14 +154,14 @@ export class ProjectContextProcessor {
                 continue;
             }
 
-            // 匹配方法声明
+            // Match method declaration
             const methodMatch = trimmed.match(/(?:public|private|protected)?\s*(?:static)?\s*(?:\w+\s+)*(\w+)\s*\([^)]*\)\s*(?:throws\s+\w+)?\s*[{;]/);
             if (methodMatch && !trimmed.includes('=') && indentLevel > 0) {
                 structure.push(`  Method: ${methodMatch[1]}`);
                 continue;
             }
 
-            // 匹配字段声明
+            // Match field declaration
             const fieldMatch = trimmed.match(/(?:public|private|protected)?\s*(?:static)?\s*(?:final)?\s*(\w+)\s+(\w+)\s*[=;]/);
             if (fieldMatch && indentLevel > 0) {
                 structure.push(`  Field: ${fieldMatch[2]} (${fieldMatch[1]})`);
@@ -172,7 +172,7 @@ export class ProjectContextProcessor {
     }
 
     /**
-     * 提取TypeScript/JavaScript文件的结构信息
+     * Extract structural info from TypeScript/JavaScript files
      */
     private extractTypeScriptStructure(content: string): string {
         const lines = content.split('\n');
@@ -181,28 +181,28 @@ export class ProjectContextProcessor {
         for (const line of lines) {
             const trimmed = line.trim();
             
-            // 匹配类声明
+            // Match class declaration
             const classMatch = trimmed.match(/(?:export\s+)?(?:abstract\s+)?class\s+(\w+)/);
             if (classMatch) {
                 structure.push(`Class: ${classMatch[1]}`);
                 continue;
             }
 
-            // 匹配接口声明
+            // Match interface declaration
             const interfaceMatch = trimmed.match(/(?:export\s+)?interface\s+(\w+)/);
             if (interfaceMatch) {
                 structure.push(`Interface: ${interfaceMatch[1]}`);
                 continue;
             }
 
-            // 匹配函数声明
+            // Match function declaration
             const functionMatch = trimmed.match(/(?:export\s+)?(?:async\s+)?function\s+(\w+)/);
             if (functionMatch) {
                 structure.push(`Function: ${functionMatch[1]}`);
                 continue;
             }
 
-            // 匹配方法声明
+            // Match method declaration
             const methodMatch = trimmed.match(/(\w+)\s*\([^)]*\)\s*[:{]/);
             if (methodMatch && trimmed.includes('(') && !trimmed.includes('=')) {
                 structure.push(`  Method: ${methodMatch[1]}`);
@@ -213,13 +213,13 @@ export class ProjectContextProcessor {
     }
 
     /**
-     * 生成完整的提示词
+     * Generate the full prompt
      */
     public async generateFullPrompt(userMessage: string): Promise<string> {
         let prompt = "You are an AI assistant that helps developers understand and work with code.\n";
         prompt += "You will be provided with reference files of a project.\n\n";
 
-        // 添加项目源文件上下文
+        // Add project source file context
         if (this.sourceFiles.length > 0) {
             prompt += "=== Project Source Files ===\n";
             for (let i = 0; i < this.sourceFiles.length; i++) {
@@ -229,7 +229,7 @@ export class ProjectContextProcessor {
             }
         }
 
-        // 添加用户手动添加的参考文件
+        // Add manually added reference files
         if (this.referenceFiles.length > 0) {
             prompt += "\n=== Reference Files (Manually Added) ===\n";
             for (let i = 0; i < this.referenceFiles.length; i++) {
@@ -246,35 +246,35 @@ export class ProjectContextProcessor {
     }
 
     /**
-     * 获取当前添加的参考文件列表
+     * Get the list of currently added reference files
      */
     public getReferenceFiles(): ReferenceFile[] {
         return [...this.referenceFiles];
     }
 
     /**
-     * 获取项目源文件列表
+     * Get the list of project source files
      */
     public getSourceFiles(): ReferenceFile[] {
         return [...this.sourceFiles];
     }
 
     /**
-     * 清除所有参考文件
+     * Clear all reference files
      */
     public clearReferenceFiles(): void {
         this.referenceFiles = [];
     }
 
     /**
-     * 清除项目上下文
+     * Clear project context
      */
     public clearProjectContext(): void {
         this.sourceFiles = [];
     }
 
     /**
-     * 获取上下文统计信息
+     * Get context statistics
      */
     public getContextStats(): {
         referenceFiles: number;

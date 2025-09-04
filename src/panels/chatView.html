@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Assistant</title>
-    <!-- 添加markdown解析器 -->
+    <!-- Add markdown parser -->
     <script src="https://cdn.jsdelivr.net/npm/marked@9.1.6/marked.min.js"></script>
-    <!-- 添加代码高亮 -->
+    <!-- Add code highlighting -->
     <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/vs2015.min.css">
     <style>
@@ -264,7 +264,7 @@
             border: 1px solid #3e3e42;
         }
 
-        /* Markdown样式 */
+        /* Markdown styles */
         .assistant-message h1, .assistant-message h2, .assistant-message h3,
         .assistant-message h4, .assistant-message h5, .assistant-message h6 {
             margin: 16px 0 8px 0;
@@ -363,7 +363,7 @@
             color: #d4d4d4;
         }
 
-        /* 代码块复制按钮 */
+        /* Code block copy button */
         .code-block-container {
             position: relative;
         }
@@ -583,7 +583,7 @@
             </div>
         </div>
 
-        <!-- Sessions管理 -->
+        <!-- Sessions management -->
         <div class="sessions-section">
             <div class="sessions-header" onclick="toggleSessions()">
                 <h3>
@@ -597,7 +597,7 @@
             </div>
         </div>
 
-        <!-- 聊天区域 -->
+        <!-- Chat area -->
         <div class="chat-area">
             <div class="messages" id="messages">
                 <div class="welcome-container" id="welcomeContainer">
@@ -649,9 +649,9 @@
         let sessionsExpanded = true;
         let referenceFiles = [];
 
-        // 页面加载完成后通知扩展
+        // Notify the extension when the page has loaded
         window.addEventListener('load', () => {
-            // 配置marked
+            // Configure marked
             marked.setOptions({
                 highlight: function(code, lang) {
                     if (lang && hljs.getLanguage(lang)) {
@@ -668,7 +668,7 @@
             vscode.postMessage({ type: 'ready' });
         });
 
-        // 监听来自扩展的消息
+        // Listen for messages from the extension
         window.addEventListener('message', event => {
             const message = event.data;
             handleExtensionMessage(message);
@@ -866,17 +866,17 @@
             messageElement.className = 'message ' + (message.isUser ? 'user-message' : 'assistant-message');
             
             if (message.isUser) {
-                // 用户消息保持纯文本
+                // Keep user messages as plain text
                 messageElement.textContent = message.content;
             } else {
-                // AI回复使用markdown渲染
+                // Render AI responses using markdown
                 const markdownContent = marked.parse(message.content);
                 messageElement.innerHTML = markdownContent;
                 
-                // 为代码块添加复制按钮
+                // Add copy buttons to code blocks
                 addCopyButtonsToCodeBlocks(messageElement);
                 
-                // 高亮代码
+                // Highlight code blocks
                 messageElement.querySelectorAll('pre code').forEach((block) => {
                     hljs.highlightElement(block);
                 });
@@ -898,14 +898,14 @@
             if (currentAiMessageElement) {
                 currentAiMessageElement.className = 'message assistant-message';
                 
-                // 使用markdown渲染AI回复
+                // Render AI response using markdown
                 const markdownContent = marked.parse(content);
                 currentAiMessageElement.innerHTML = markdownContent;
                 
-                // 为代码块添加复制按钮
+                // Add copy buttons to code blocks
                 addCopyButtonsToCodeBlocks(currentAiMessageElement);
                 
-                // 高亮代码
+                // Highlight code blocks
                 currentAiMessageElement.querySelectorAll('pre code').forEach((block) => {
                     hljs.highlightElement(block);
                 });
@@ -921,17 +921,17 @@
         function addCopyButtonsToCodeBlocks(container) {
             const codeBlocks = container.querySelectorAll('pre');
             codeBlocks.forEach(pre => {
-                // 创建包装容器
+                // Create wrapper container
                 const wrapper = document.createElement('div');
                 wrapper.className = 'code-block-container';
                 
-                // 创建复制按钮
+                // Create copy button
                 const copyButton = document.createElement('button');
                 copyButton.className = 'copy-button';
                 copyButton.textContent = 'Copy';
                 copyButton.onclick = () => copyCodeToClipboard(pre, copyButton);
                 
-                // 包装代码块
+                // Wrap the code block
                 pre.parentNode.insertBefore(wrapper, pre);
                 wrapper.appendChild(pre);
                 wrapper.appendChild(copyButton);
@@ -985,7 +985,7 @@
             });
         }
 
-        // ========== 自定义弹窗实现 ==========
+        // ========== Custom modal implementation ==========
         function showInputModal(title, defaultValue, callback) {
             const overlay = document.getElementById('modalOverlay');
             const modalTitle = document.getElementById('modalTitle');
@@ -1086,7 +1086,7 @@
             });
         }
 
-        // 显式挂载到 window，确保 HTML 能调用
+        // Explicitly attach to window so HTML can call these functions
         window.createNewSession = createNewSession;
         window.editSessionName = editSessionName;
         window.deleteSession = deleteSession;
