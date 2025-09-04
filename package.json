@@ -313,6 +313,16 @@
           "default": 50,
           "description": "Maximum number of context files to include"
         },
+        "aiAssistant.maxPromptLength": {
+          "type": "number",
+          "default": 50000,
+          "description": "Maximum length of the generated prompt in characters (50KB default)"
+        },
+        "aiAssistant.maxFileContentLength": {
+          "type": "number",
+          "default": 3000,
+          "description": "Maximum content length per file in characters (3KB default)"
+        },
         "aiAssistant.enableCodeCompletion": {
           "type": "boolean",
           "default": true,
@@ -334,7 +344,7 @@
               "description": "Show detailed error messages with suggested solutions"
             },
             "enableRetry": {
-              "type": "boolean", 
+              "type": "boolean",
               "default": true,
               "description": "Enable automatic retry for failed requests"
             },
@@ -425,17 +435,22 @@
     "test": "vscode-test"
   },
   "devDependencies": {
+    "@types/babel__traverse": "^7.28.0",
     "@types/mocha": "^10.0.10",
     "@types/node": "20.x",
     "@types/vscode": "^1.101.0",
     "@typescript-eslint/eslint-plugin": "^8.31.1",
-    "@typescript-eslint/parser": "^8.31.1",
+    "@typescript-eslint/parser": "^8.40.0",
     "@vscode/test-cli": "^0.0.10",
     "@vscode/test-electron": "^2.5.2",
     "eslint": "^9.25.1",
     "typescript": "^5.8.3"
   },
   "dependencies": {
+    "@babel/parser": "^7.28.3",
+    "@babel/traverse": "^7.28.3",
+    "@babel/types": "^7.28.2",
+    "java-parser": "^3.0.1",
     "node-fetch": "^3.3.2"
   }
 }
