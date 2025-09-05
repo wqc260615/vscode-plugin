@@ -26,7 +26,7 @@ export class ProjectContextProcessor {
         this.maxPromptLength = config.get('maxPromptLength', 50000); // 50KB max prompt
         this.maxFileContentLength = config.get('maxFileContentLength', 3000); // 3KB per file
         
-        // 监听配置变化
+        // Listen for configuration changes
         vscode.workspace.onDidChangeConfiguration(e => {
             if (e.affectsConfiguration('aiAssistant')) {
                 const newConfig = vscode.workspace.getConfiguration('aiAssistant');
@@ -103,18 +103,18 @@ export class ProjectContextProcessor {
                     const document = await vscode.workspace.openTextDocument(file);
                     const fileName = path.basename(file.fsPath);
                     
-                    // 根据文件类型提取结构或截断内容
+                    // Extract structure based on file type or truncate content
                     let content = document.getText();
                     if (fileName.endsWith('.java')) {
                         content = this.extractJavaStructure(content);
                     } else if (fileName.endsWith('.ts') || fileName.endsWith('.js') || fileName.endsWith('.tsx') || fileName.endsWith('.jsx')) {
                         content = this.extractTypeScriptStructure(content, file.fsPath);
                     } else {
-                        // 对于其他文件，限制内容长度
+                        // For other files, limit content length
                         content = this.truncateContent(content, this.maxFileContentLength);
                     }
 
-                    // 确保内容不超过最大长度
+                    // Ensure the content does not exceed the maximum length
                     content = this.truncateContent(content, this.maxFileContentLength);
 
                     const sourceFile: ReferenceFile = {
@@ -135,8 +135,8 @@ export class ProjectContextProcessor {
     }
 
     /**
-     * 使用改进的解析提取Java文件的结构信息
-     * 注意：这里使用了更精确的解析逻辑，虽然不是完整的AST，但比正则表达式准确得多
+     * Extract Java file structure using an improved parsing approach
+     * Note: This uses a more precise logic than regex, though not a full AST parser
      */
     private extractJavaStructure(content: string): string {
         try {
@@ -154,7 +154,7 @@ export class ProjectContextProcessor {
                 const line = lines[i];
                 const trimmed = line.trim();
                 
-                // 处理多行注释
+                // Handle multi-line comments
                 if (trimmed.includes('/*')) {
                     inComment = true;
                 }
@@ -166,7 +166,7 @@ export class ProjectContextProcessor {
                     continue;
                 }
 
-                // 统计大括号层级（更精确）
+                // Track brace depth (more precise)
                 let tempBraceDepth = braceDepth;
                 for (const char of line) {
                     if (char === '{') {
@@ -177,7 +177,7 @@ export class ProjectContextProcessor {
                     }
                 }
                 
-                // 处理包声明和导入
+                // Handle package declarations and imports
                 if (trimmed.startsWith('package ')) {
                     structure.push(trimmed);
                     continue;
@@ -187,7 +187,7 @@ export class ProjectContextProcessor {
                     continue;
                 }
 
-                // 类声明检测（更精确）
+                // Class declaration detection (more precise)
                 if (this.isJavaClassDeclaration(trimmed)) {
                     const className = this.extractJavaClassName(trimmed);
                     if (className) {
@@ -209,7 +209,7 @@ export class ProjectContextProcessor {
                     }
                 }
 
-                // 接口声明检测
+                // Interface declaration detection
                 if (this.isJavaInterfaceDeclaration(trimmed)) {
                     const interfaceName = this.extractJavaInterfaceName(trimmed);
                     if (interfaceName) {
@@ -218,7 +218,7 @@ export class ProjectContextProcessor {
                     }
                 }
 
-                // 方法声明检测（在类或接口内部）
+                // Method declaration detection (inside class or interface)
                 if ((inClass || inInterface) && braceDepth > 0) {
                     if (this.isJavaMethodDeclaration(trimmed)) {
                         const methodInfo = this.extractJavaMethodInfo(trimmed);
@@ -227,7 +227,7 @@ export class ProjectContextProcessor {
                         }
                     }
                     
-                    // 字段声明检测
+                    // Field declaration detection
                     if (this.isJavaFieldDeclaration(trimmed, braceDepth)) {
                         const fieldInfo = this.extractJavaFieldInfo(trimmed);
                         if (fieldInfo) {
@@ -236,10 +236,10 @@ export class ProjectContextProcessor {
                     }
                 }
 
-                // 更新大括号层级
+                // Update brace depth
                 braceDepth = tempBraceDepth;
 
-                // 检测类/接口结束
+                // Detect end of class/interface
                 if (braceDepth <= 0 && (inClass || inInterface)) {
                     inClass = false;
                     inInterface = false;
@@ -253,9 +253,9 @@ export class ProjectContextProcessor {
         }
     }
 
-    // Java解析辅助方法
+    // Java parsing helper methods
     private isJavaClassDeclaration(line: string): boolean {
-        // 检查是否为类声明，排除内部类等复杂情况
+        // Check for class declaration, excluding complex cases like inner classes
         const classPattern = /^(?:(?:public|private|protected|abstract|final|static)\s+)*class\s+\w+/;
         return classPattern.test(line) && !line.includes('=') && !line.includes('new ');
     }
@@ -276,7 +276,7 @@ export class ProjectContextProcessor {
     }
 
     private isJavaMethodDeclaration(line: string): boolean {
-        // 检查方法声明模式
+        // Check method declaration pattern
         return line.includes('(') && line.includes(')') && 
                !line.includes('=') && 
                !line.includes('new ') &&
@@ -285,11 +285,11 @@ export class ProjectContextProcessor {
                !line.includes('for ') &&
                (line.includes('public ') || line.includes('private ') || line.includes('protected ') || 
                 line.includes('static ') || line.includes('final ') || line.includes('abstract ') ||
-                Boolean(line.match(/^\s*\w+\s+\w+\s*\(/))); // 简单的返回类型 方法名 模式
+                Boolean(line.match(/^\s*\w+\s+\w+\s*\(/))); // simple "returnType methodName(" pattern
     }
 
     private extractJavaMethodInfo(line: string): string | null {
-        // 提取方法名和参数
+        // Extract method name and parameters
         const methodMatch = line.match(/(\w+)\s*\(([^)]*)\)/);
         if (methodMatch) {
             const methodName = methodMatch[1];
@@ -301,7 +301,7 @@ export class ProjectContextProcessor {
     }
 
     private isJavaFieldDeclaration(line: string, braceDepth: number): boolean {
-        // 字段声明：在类内部，有类型和变量名，以分号结尾
+        // Field declaration: inside a class, has type and variable name, ends with semicolon
         return braceDepth > 0 && 
                !line.includes('(') && 
                !line.includes('{') &&
@@ -311,11 +311,11 @@ export class ProjectContextProcessor {
                !line.includes('for ') &&
                (line.includes('public ') || line.includes('private ') || line.includes('protected ') || 
                 line.includes('static ') || line.includes('final ') ||
-                Boolean(line.match(/^\s*\w+\s+\w+/))); // 类型 变量名 模式
+                Boolean(line.match(/^\s*\w+\s+\w+/))); // type and variable name pattern
     }
 
     private extractJavaFieldInfo(line: string): string | null {
-        // 提取字段类型和名称
+        // Extract field type and name
         const fieldMatch = line.match(/(?:public|private|protected|static|final|\s)+(\w+(?:<[^>]*>)?(?:\[\])*)\s+(\w+)/);
         if (fieldMatch) {
             return `${fieldMatch[2]} : ${fieldMatch[1]}`;
@@ -324,13 +324,13 @@ export class ProjectContextProcessor {
     }
 
     /**
-     * 使用AST解析TypeScript/JavaScript文件的结构信息
+     * Extract TypeScript/JavaScript file structure using AST parsing
      */
     private extractTypeScriptStructure(content: string, filePath: string): string {
         try {
             const structure: string[] = [];
             
-            // 使用Babel解析器，它对各种语法更宽容
+            // Use Babel parser which is more tolerant to various syntax
             const ast = parseBabel(content, {
                 sourceType: 'module',
                 allowImportExportEverywhere: true,
@@ -350,9 +350,9 @@ export class ProjectContextProcessor {
                 ]
             });
 
-            // 遍历AST节点
+            // Traverse AST nodes
             traverse(ast, {
-                // 导入声明
+                // Import declarations
                 ImportDeclaration(path: any) {
                     const node = path.node;
                     if (t.isStringLiteral(node.source)) {
@@ -360,7 +360,7 @@ export class ProjectContextProcessor {
                     }
                 },
 
-                // 导出声明
+                // Export declarations
                 ExportNamedDeclaration(path: any) {
                     const node = path.node;
                     if (node.declaration) {
@@ -372,7 +372,7 @@ export class ProjectContextProcessor {
                     }
                 },
 
-                // 类声明
+                // Class declarations
                 ClassDeclaration(path: any) {
                     const node = path.node;
                     if (node.id) {
@@ -384,7 +384,7 @@ export class ProjectContextProcessor {
                     }
                 },
 
-                // 接口声明 (TypeScript)
+                // Interface declarations (TypeScript)
                 TSInterfaceDeclaration(path: any) {
                     const node = path.node;
                     let interfaceInfo = `\nInterface: ${node.id.name}`;
@@ -397,13 +397,13 @@ export class ProjectContextProcessor {
                     structure.push(interfaceInfo);
                 },
 
-                // 类型别名声明 (TypeScript)
+                // Type alias declarations (TypeScript)
                 TSTypeAliasDeclaration(path: any) {
                     const node = path.node;
                     structure.push(`Type: ${node.id.name}`);
                 },
 
-                // 函数声明
+                // Function declarations
                 FunctionDeclaration(path: any) {
                     const node = path.node;
                     if (node.id) {
@@ -421,7 +421,7 @@ export class ProjectContextProcessor {
                     }
                 },
 
-                // 方法定义
+                // Method definitions
                 ClassMethod(path: any) {
                     const node = path.node;
                     if (t.isIdentifier(node.key)) {
@@ -447,7 +447,7 @@ export class ProjectContextProcessor {
                     }
                 },
 
-                // 类属性
+                // Class properties
                 ClassProperty(path: any) {
                     const node = path.node;
                     if (t.isIdentifier(node.key)) {
@@ -456,10 +456,10 @@ export class ProjectContextProcessor {
                     }
                 },
 
-                // 变量声明
+                // Variable declarations
                 VariableDeclaration(path: any) {
                     const node = path.node;
-                    // 只处理顶层变量声明
+                    // Only handle top-level variable declarations
                     if (path.scope.parent === null || path.getFunctionParent() === null) {
                         node.declarations.forEach((declarator: any) => {
                             if (t.isIdentifier(declarator.id)) {
@@ -478,57 +478,57 @@ export class ProjectContextProcessor {
     }
 
     /**
-     * 智能截断内容，保持代码结构完整性
+     * Intelligently truncate content while preserving code structure
      */
     private truncateContent(content: string, maxLength: number): string {
         if (content.length <= maxLength) {
             return content;
         }
 
-        // 尝试在完整的行边界截断
+        // Try truncating at a full line boundary
         const truncated = content.substring(0, maxLength);
         const lastNewlineIndex = truncated.lastIndexOf('\n');
         
         if (lastNewlineIndex > maxLength * 0.8) {
-            // 如果最后一个换行符位置合理，在那里截断
+            // If the last newline position is reasonable, truncate there
             return truncated.substring(0, lastNewlineIndex) + '\n\n// ... (content truncated)';
         } else {
-            // 否则直接截断并添加标记
+            // Otherwise, truncate directly and add a marker
             return truncated + '\n\n// ... (content truncated)';
         }
     }
 
     /**
-     * 优先排序文件（重要文件优先）
+     * Prioritize files (important first)
      */
     private prioritizeFiles(files: ReferenceFile[]): ReferenceFile[] {
         return files.sort((a, b) => {
-            // 优先级：配置文件 > 主要源文件 > 测试文件 > 其他
+            // Priority: config > main source > tests > others
             const getPriority = (file: ReferenceFile): number => {
                 const name = file.name.toLowerCase();
                 const path = file.path.toLowerCase();
                 
-                // 配置文件最高优先级
+                // Config files highest priority
                 if (name.includes('config') || name.includes('package.json') || name.includes('tsconfig') || name.includes('pom.xml')) {
                     return 10;
                 }
                 
-                // 主要源文件
+                // Main source files
                 if (name.includes('main') || name.includes('index') || name.includes('app') || path.includes('src/main')) {
                     return 8;
                 }
                 
-                // 服务和核心功能文件
+                // Service and core feature files
                 if (name.includes('service') || name.includes('manager') || name.includes('provider') || name.includes('controller')) {
                     return 7;
                 }
                 
-                // 测试文件较低优先级
+                // Test files lower priority
                 if (name.includes('test') || name.includes('spec') || path.includes('test/') || path.includes('__tests__')) {
                     return 3;
                 }
                 
-                // 其他文件
+                // Other files
                 return 5;
             };
             
@@ -537,20 +537,20 @@ export class ProjectContextProcessor {
     }
 
     /**
-     * 生成完整的提示词，带有智能长度控制
+     * Generate a full prompt with smart length control
      */
     public async generateFullPrompt(userMessage: string): Promise<string> {
         let prompt = "You are an AI assistant that helps developers understand and work with code.\n";
         prompt += "You will be provided with reference files of a project.\n\n";
 
-        let currentLength = prompt.length + userMessage.length + 100; // 留一些缓冲空间
+        let currentLength = prompt.length + userMessage.length + 100; // leave some buffer space
         const maxAllowedLength = this.maxPromptLength - currentLength;
 
-        // 合并并优先排序所有文件
+        // Merge and prioritize all files
         const allFiles = [...this.referenceFiles, ...this.sourceFiles];
         const prioritizedFiles = this.prioritizeFiles(allFiles);
 
-        // 添加文件内容，直到达到长度限制
+        // Add file content until reaching the length limit
         const addedFiles: ReferenceFile[] = [];
         let totalAddedLength = 0;
 
@@ -558,9 +558,9 @@ export class ProjectContextProcessor {
             const fileSection = `\n--- ${file.type === 'reference' ? 'Reference' : 'Source'} File: ${file.name} ---\n${file.content}\n`;
             
             if (totalAddedLength + fileSection.length > maxAllowedLength) {
-                // 如果添加这个文件会超出限制，尝试截断
+                // If adding this file exceeds the limit, try truncating
                 const remainingSpace = maxAllowedLength - totalAddedLength;
-                if (remainingSpace > 500) { // 至少要有500字符空间才值得添加
+                if (remainingSpace > 500) { // add only if at least 500 characters are available
                     const truncatedContent = this.truncateContent(file.content, remainingSpace - 200);
                     const truncatedSection = `\n--- ${file.type === 'reference' ? 'Reference' : 'Source'} File: ${file.name} (truncated) ---\n${truncatedContent}\n`;
                     addedFiles.push({...file, content: truncatedContent});
@@ -573,11 +573,11 @@ export class ProjectContextProcessor {
             totalAddedLength += fileSection.length;
         }
 
-        // 构建最终prompt
+        // Build the final prompt
         const referenceFiles = addedFiles.filter(f => f.type === 'reference');
         const sourceFiles = addedFiles.filter(f => f.type === 'source');
 
-        // 添加项目源文件上下文
+        // Add project source file context
         if (sourceFiles.length > 0) {
             prompt += "=== Project Source Files ===\n";
             for (let i = 0; i < sourceFiles.length; i++) {
@@ -587,7 +587,7 @@ export class ProjectContextProcessor {
             }
         }
 
-        // 添加用户手动添加的参考文件
+        // Add user-added reference files
         if (referenceFiles.length > 0) {
             prompt += "\n=== Reference Files (Manually Added) ===\n";
             for (let i = 0; i < referenceFiles.length; i++) {
@@ -597,7 +597,7 @@ export class ProjectContextProcessor {
             }
         }
 
-        // 添加统计信息
+        // Add statistics
         const skippedFiles = prioritizedFiles.length - addedFiles.length;
         if (skippedFiles > 0) {
             prompt += `\n--- Context Summary ---\n`;
@@ -608,7 +608,7 @@ export class ProjectContextProcessor {
         prompt += "\n=== User Question ===\n";
         prompt += userMessage;
 
-        // 最终长度检查
+        // Final length check
         if (prompt.length > this.maxPromptLength) {
             console.warn(`Generated prompt length (${prompt.length}) exceeds max length (${this.maxPromptLength}), truncating...`);
             prompt = prompt.substring(0, this.maxPromptLength - 100) + '\n\n... (prompt truncated due to length)';
