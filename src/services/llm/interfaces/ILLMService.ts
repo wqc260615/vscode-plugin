@@ -1,4 +1,4 @@
-import { ChatSession } from '../sessionManager';
+import { ChatSession } from '../../session/sessionManager';
 
 /**
  * Abstract interface for LLM services

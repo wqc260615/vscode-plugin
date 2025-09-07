@@ -1,6 +1,6 @@
 import * as assert from 'assert';
 import * as vscode from 'vscode';
-import { LLMErrorHandler, ErrorType, ResponseCache } from '../services/errorHandler';
+import { LLMErrorHandler, ErrorType, ResponseCache } from '../services/core/error/errorHandler';
 
 suite('ErrorHandler Test Suite', () => {
     let errorHandler: LLMErrorHandler;
@@ -150,15 +150,15 @@ suite('ErrorHandler Test Suite', () => {
     });
 
     test('should handle configuration access', () => {
-        // 测试配置访问
+        // Test configuration access
         const config = vscode.workspace.getConfiguration('aiAssistant.errorHandling');
         
-        // 这些配置可能不存在，但我们测试访问不会抛出异常
+        // These settings may not exist; verify access does not throw
         assert.ok(config !== undefined, 'Configuration should be accessible');
     });
 
     test('should handle retry mechanism', async function() {
-        this.timeout(30000); // 30秒超时
+        this.timeout(30000); // 30 seconds timeout
         let attemptCount = 0;
         const failingOperation = async () => {
             attemptCount++;
@@ -169,7 +169,7 @@ suite('ErrorHandler Test Suite', () => {
             await errorHandler.withRetry(failingOperation, 'test-operation');
             assert.fail('Should have thrown an error');
         } catch (error) {
-            // 在测试环境中，重试可能被禁用，所以这里只是验证错误被抛出
+            // In tests, retry could be disabled; only verify an error is thrown
             assert.ok(error instanceof Error, 'Should throw an Error');
         }
     });
@@ -191,7 +191,7 @@ suite('ErrorHandler Test Suite', () => {
         const error = new Error('Test error for logging');
         const errorDetails = errorHandler.handleError(error);
         
-        // 测试应该不会抛出异常
+        // Should not throw during logging
         assert.ok(errorDetails, 'Should handle error logging');
         assert.strictEqual(errorDetails.type, ErrorType.UNKNOWN, 'Should categorize error correctly');
     });

@@ -1,8 +1,8 @@
 import * as assert from 'assert';
-import { ExtensibleFeatureManager } from '../services/ExtensibleFeatureManager';
-import { IShortcutCommand, IContextMenuItem } from '../services/interfaces/IExtensibleFeature';
+import { ExtensibleFeatureManager } from '../services/core/ExtensibleFeatureManager';
+import { IShortcutCommand, IContextMenuItem } from '../services/core/interfaces/IExtensibleFeature';
 
-// 测试用的模拟命令
+// Mock shortcut command for testing
 class MockShortcutCommand implements IShortcutCommand {
     public readonly id = 'testShortcut';
     public readonly name = 'Test Shortcut';
@@ -17,7 +17,7 @@ class MockShortcutCommand implements IShortcutCommand {
     }
 }
 
-// 测试用的模拟上下文菜单
+// Mock context menu item for testing
 class MockContextMenuItem implements IContextMenuItem {
     public readonly id = 'testContextMenu';
     public readonly name = 'Test Context Menu';
@@ -40,6 +40,8 @@ suite('ExtensibleFeatureManager Tests', () => {
 
     setup(() => {
         manager = ExtensibleFeatureManager.getInstance();
+        // Ensure clean state in case extension activation registered defaults
+        manager.dispose();
     });
 
     teardown(() => {
@@ -68,12 +70,12 @@ suite('ExtensibleFeatureManager Tests', () => {
         const command = new MockShortcutCommand();
         manager.registerShortcutCommand(command);
         
-        // 禁用功能
+        // Disable feature
         manager.toggleFeature('testShortcut', false);
         const commands = manager.getShortcutCommands();
         assert.strictEqual(commands[0].enabled, false);
         
-        // 启用功能
+        // Enable feature
         manager.toggleFeature('testShortcut', true);
         assert.strictEqual(commands[0].enabled, true);
     });

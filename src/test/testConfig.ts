@@ -1,11 +1,11 @@
 import * as vscode from 'vscode';
 
 /**
- * 测试配置和工具函数
+ * Test configuration and utility functions
  */
 export class TestConfig {
     /**
-     * 创建模拟的扩展上下文
+     * Create a mock extension context
      */
     static createMockContext(): any {
         return {
@@ -56,7 +56,7 @@ export class TestConfig {
     }
 
     /**
-     * 创建模拟的聊天会话
+     * Create a mock chat session
      */
     static createMockSession(name: string = 'Test Session'): any {
         return {
@@ -69,7 +69,7 @@ export class TestConfig {
     }
 
     /**
-     * 创建模拟的聊天消息
+     * Create a mock chat message
      */
     static createMockMessage(content: string, isUser: boolean = true): any {
         return {
@@ -81,14 +81,14 @@ export class TestConfig {
     }
 
     /**
-     * 等待指定的时间
+     * Wait for specified milliseconds
      */
     static async wait(ms: number): Promise<void> {
         return new Promise(resolve => setTimeout(resolve, ms));
     }
 
     /**
-     * 模拟配置获取
+     * Create a mock configuration accessor
      */
     static createMockConfig(values: Record<string, any> = {}): any {
         return {
@@ -99,10 +99,10 @@ export class TestConfig {
     }
 
     /**
-     * 清理测试环境
+     * Cleanup test environment
      */
     static async cleanup(): Promise<void> {
-        // 等待所有异步操作完成
+        // Wait for all async operations to complete
         await this.wait(100);
     }
 }

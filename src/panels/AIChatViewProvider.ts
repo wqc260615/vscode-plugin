@@ -1,8 +1,8 @@
 import * as vscode from 'vscode';
-import { SessionManager, ChatSession } from '../services/sessionManager';
-import { OllamaService } from '../services/ollamaService';
-import { ProjectContextProcessor } from '../services/projectContextProcessor';
-import { LLMErrorHandler } from '../services/errorHandler';
+import { SessionManager, ChatSession } from '../services/session/sessionManager';
+import { OllamaService } from '../services/llm/ollamaService';
+import { ProjectContextProcessor } from '../services/context/projectContextProcessor';
+import { LLMErrorHandler } from '../services/core/error/errorHandler';
 import * as path from 'path';
 import * as fs from 'fs';
 

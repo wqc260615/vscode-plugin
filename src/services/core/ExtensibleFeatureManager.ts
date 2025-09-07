@@ -6,6 +6,8 @@ export class ExtensibleFeatureManager {
     private shortcutCommands: Map<string, IShortcutCommand> = new Map();
     private contextMenuItems: Map<string, IContextMenuItem> = new Map();
     private disposables: vscode.Disposable[] = [];
+    private commandDisposables: Map<string, vscode.Disposable> = new Map();
+    private contextMenuDisposables: Map<string, vscode.Disposable> = new Map();
 
     private constructor() {}
 
@@ -21,7 +23,7 @@ export class ExtensibleFeatureManager {
      */
     public registerShortcutCommand(command: IShortcutCommand): void {
         this.shortcutCommands.set(command.id, command);
-        this.registerCommand(command);
+        this.updateShortcutRegistration(command);
     }
 
     /**
@@ -29,7 +31,7 @@ export class ExtensibleFeatureManager {
      */
     public registerContextMenuItem(item: IContextMenuItem): void {
         this.contextMenuItems.set(item.id, item);
-        this.registerContextMenu(item);
+        this.updateContextMenuRegistration(item);
     }
 
     /**
@@ -70,40 +72,74 @@ export class ExtensibleFeatureManager {
     public dispose(): void {
         this.disposables.forEach(disposable => disposable.dispose());
         this.disposables = [];
+        this.commandDisposables.forEach(d => d.dispose());
+        this.commandDisposables.clear();
+        this.contextMenuDisposables.forEach(d => d.dispose());
+        this.contextMenuDisposables.clear();
         this.shortcutCommands.clear();
         this.contextMenuItems.clear();
     }
 
     private registerCommand(command: IShortcutCommand): void {
-        if (!command.enabled) return;
+        if (!command.enabled) {
+            return;
+        }
+        // Dispose prior registration for this id if exists to avoid duplicate command error
+        const existing = this.commandDisposables.get(command.id);
+        if (existing) {
+            existing.dispose();
+            this.commandDisposables.delete(command.id);
+        }
 
         const disposable = vscode.commands.registerCommand(
             `aiAssistant.extensible.${command.id}`,
             (...args: any[]) => command.execute(...args)
         );
         this.disposables.push(disposable);
+        this.commandDisposables.set(command.id, disposable);
     }
 
     private registerContextMenu(item: IContextMenuItem): void {
-        if (!item.enabled) return;
+        if (!item.enabled) {
+            return;
+        }
+        // Dispose prior registration for this id if exists to avoid duplicate command error
+        const existing = this.contextMenuDisposables.get(item.id);
+        if (existing) {
+            existing.dispose();
+            this.contextMenuDisposables.delete(item.id);
+        }
 
         const disposable = vscode.commands.registerCommand(
             `aiAssistant.contextMenu.${item.id}`,
             (...args: any[]) => item.execute(...args)
         );
         this.disposables.push(disposable);
+        this.contextMenuDisposables.set(item.id, disposable);
     }
 
     private updateShortcutRegistration(command: IShortcutCommand): void {
-        // Re-register shortcut
-        this.disposables = this.disposables.filter(d => d.dispose);
-        this.registerCommand(command);
+        // Re-register shortcut: if disabled, dispose; if enabled, (re)register
+        const existing = this.commandDisposables.get(command.id);
+        if (existing) {
+            existing.dispose();
+            this.commandDisposables.delete(command.id);
+        }
+        if (command.enabled) {
+            this.registerCommand(command);
+        }
     }
 
     private updateContextMenuRegistration(item: IContextMenuItem): void {
-        // Re-register context menu
-        this.disposables = this.disposables.filter(d => d.dispose);
-        this.registerContextMenu(item);
+        // Re-register context menu: if disabled, dispose; if enabled, (re)register
+        const existing = this.contextMenuDisposables.get(item.id);
+        if (existing) {
+            existing.dispose();
+            this.contextMenuDisposables.delete(item.id);
+        }
+        if (item.enabled) {
+            this.registerContextMenu(item);
+        }
     }
 }
 

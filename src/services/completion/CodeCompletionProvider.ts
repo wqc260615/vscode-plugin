@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
-import { LLMServiceManager } from '../LLMServiceManager';
-import { LLMErrorHandler } from '../errorHandler';
+import { LLMServiceManager } from '../llm/LLMServiceManager';
+import { LLMErrorHandler } from '../core/error/errorHandler';
 
 export interface CompletionSuggestion {
     text: string;

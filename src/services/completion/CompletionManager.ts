@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { CodeCompletionProvider } from './CodeCompletionProvider';
-import { LLMServiceManager } from '../LLMServiceManager';
+import { LLMServiceManager } from '../llm/LLMServiceManager';
 
 export class CompletionManager {
     private completionProvider: CodeCompletionProvider;

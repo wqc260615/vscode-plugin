@@ -1,15 +1,15 @@
 import * as vscode from 'vscode';
 import { AIChatViewProvider } from './panels/AIChatViewProvider';
 import { ContextTreeProvider, AIAssistantCommands } from './providers/TreeViewProviders';
-import { SessionManager } from './services/sessionManager';
-import { ProjectContextProcessor } from './services/projectContextProcessor';
-import { LLMServiceManager } from './services/LLMServiceManager';
+import { SessionManager } from './services/session/sessionManager';
+import { ProjectContextProcessor } from './services/context/projectContextProcessor';
+import { LLMServiceManager } from './services/llm/LLMServiceManager';
 import { CompletionManager } from './services/completion/CompletionManager';
-import { InlineChatProvider } from './services/InlineChatProvider';
-import { StatusBarManager } from './services/statusBarManager';
-import { ExtensibleFeatureManager } from './services/ExtensibleFeatureManager';
-import { getDefaultFeatures } from './services/DefaultExtensibleFeatures';
-import { LLMProviderCommands } from './services/LLMProviderCommands';
+import { InlineChatProvider } from './services/chat/InlineChatProvider';
+import { StatusBarManager } from './services/status/statusBarManager';
+import { ExtensibleFeatureManager } from './services/core/ExtensibleFeatureManager';
+import { getDefaultFeatures } from './services/core/DefaultExtensibleFeatures';
+import { LLMProviderCommands } from './services/llm/LLMProviderCommands';
 
 export function activate(context: vscode.ExtensionContext) {
     console.log('AI Assistant extension is now active!');

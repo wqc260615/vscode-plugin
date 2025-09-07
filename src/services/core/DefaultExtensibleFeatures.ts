@@ -48,7 +48,9 @@ export class ExplainCodeContextMenu implements IContextMenuItem {
 
     async execute(): Promise<void> {
         const editor = vscode.window.activeTextEditor;
-        if (!editor) return;
+        if (!editor) {
+            return;
+        }
 
         const selection = editor.selection;
         const text = editor.document.getText(selection);
@@ -84,7 +86,9 @@ export class OptimizeCodeContextMenu implements IContextMenuItem {
 
     async execute(): Promise<void> {
         const editor = vscode.window.activeTextEditor;
-        if (!editor) return;
+        if (!editor) {
+            return;
+        }
 
         const document = editor.document;
         const fileName = document.fileName.split('/').pop();

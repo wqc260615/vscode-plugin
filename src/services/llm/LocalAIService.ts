@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
-import { ChatSession } from './sessionManager';
-import { LLMErrorHandler } from './errorHandler';
+import { ChatSession, ChatMessage } from '../session/sessionManager';
+import { LLMErrorHandler } from '../core/error/errorHandler';
 import { ILLMService, ILLMServiceConfig } from './interfaces/ILLMService';
 
 /**
@@ -96,7 +96,7 @@ export class LocalAIService implements ILLMService {
                     throw new Error('LocalAI service is not available');
                 }
 
-                const messages = session.messages.map(msg => ({
+                const messages = session.messages.map((msg: ChatMessage) => ({
                     role: msg.isUser ? 'user' : 'assistant',
                     content: msg.content
                 }));
@@ -188,7 +188,7 @@ export class LocalAIService implements ILLMService {
                     throw new Error('LocalAI service is not available');
                 }
 
-                const messages = session.messages.map(msg => ({
+                const messages = session.messages.map((msg: ChatMessage) => ({
                     role: msg.isUser ? 'user' : 'assistant',
                     content: msg.content
                 }));

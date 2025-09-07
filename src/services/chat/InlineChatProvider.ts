@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
-import { LLMServiceManager } from './LLMServiceManager';
-import { ProjectContextProcessor } from './projectContextProcessor';
-import { LLMErrorHandler } from './errorHandler';
+import { LLMServiceManager } from '../llm/LLMServiceManager';
+import { ProjectContextProcessor } from '../context/projectContextProcessor';
+import { LLMErrorHandler } from '../core/error/errorHandler';
 
 export class InlineChatProvider {
     private llmServiceManager: LLMServiceManager;

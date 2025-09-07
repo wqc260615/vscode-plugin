@@ -3,25 +3,25 @@ import Mocha from 'mocha';
 import { glob } from 'glob';
 
 export function run(): Promise<void> {
-    // 创建Mocha测试实例
+    // Create Mocha test instance
     const mocha = new Mocha({
         ui: 'tdd',
         color: true,
-        timeout: 30000, // 30秒超时，增加超时时间以处理新服务和异步操作
-        slow: 5000 // 5秒被认为是慢测试
+        timeout: 30000, // 30s timeout; allow extra time for services and async ops
+        slow: 5000 // Tests slower than 5s are considered slow
     });
 
     const testsRoot = path.resolve(__dirname, '..');
 
     return new Promise(async (resolve, reject) => {
         try {
-            // 查找所有测试文件
+            // Find all test files
             const files = await glob('**/**.test.js', { cwd: testsRoot });
 
-            // 添加测试文件到Mocha
+            // Add test files to Mocha
             files.forEach((f: string) => mocha.addFile(path.resolve(testsRoot, f)));
 
-            // 运行测试
+            // Run tests
             mocha.run((failures: number) => {
                 if (failures > 0) {
                     reject(new Error(`${failures} tests failed.`));

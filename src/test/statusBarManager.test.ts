@@ -1,7 +1,7 @@
 import * as assert from 'assert';
 import * as vscode from 'vscode';
-import { StatusBarManager } from '../services/statusBarManager';
-import { LLMServiceManager } from '../services/LLMServiceManager';
+import { StatusBarManager } from '../services/status/statusBarManager';
+import { LLMServiceManager } from '../services/llm/LLMServiceManager';
 
 // Mock LLMServiceManager
 class MockLLMServiceManager {
@@ -78,7 +78,7 @@ suite('StatusBarManager Test Suite', () => {
     });
 
     test('should handle getModels when service is available', async function() {
-        this.timeout(30000); // 30秒超时
+        this.timeout(30000); // 30 seconds timeout
         // Simulate service available case
         const originalIsServiceAvailable = mockLLMServiceManager.isServiceAvailable;
         const originalGetModels = mockLLMServiceManager.getModels;
@@ -98,8 +98,8 @@ suite('StatusBarManager Test Suite', () => {
     });
 
     test('should handle getModels errors gracefully', async function() {
-        this.timeout(30000); // 30秒超时
-        // 模拟服务可用但getModels失败的情况
+        this.timeout(30000); // 30 seconds timeout
+        // Simulate service available but getModels fails
         const originalIsServiceAvailable = mockLLMServiceManager.isServiceAvailable;
         const originalGetModels = mockLLMServiceManager.getModels;
         
@@ -107,11 +107,11 @@ suite('StatusBarManager Test Suite', () => {
         mockLLMServiceManager.getModels = async () => { throw new Error('Models fetch failed'); };
 
         try {
-            // 应该不会抛出异常
+            // Should not throw
             await statusBarManager.handleStatusBarClick();
             assert.ok(true, 'Should handle getModels errors gracefully');
         } finally {
-            // 恢复原始方法
+            // Restore original method
             mockLLMServiceManager.isServiceAvailable = originalIsServiceAvailable;
             mockLLMServiceManager.getModels = originalGetModels;
         }

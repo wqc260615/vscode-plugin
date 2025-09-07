@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
-import { SessionManager, ChatSession } from '../services/sessionManager';
-import { ProjectContextProcessor, ReferenceFile } from '../services/projectContextProcessor';
+import { SessionManager, ChatSession } from '../services/session/sessionManager';
+import { ProjectContextProcessor, ReferenceFile } from '../services/context/projectContextProcessor';
 
 // Context file tree view provider
 export class ContextTreeProvider implements vscode.TreeDataProvider<ContextTreeItem> {

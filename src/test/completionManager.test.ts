@@ -1,7 +1,7 @@
 import * as assert from 'assert';
 import * as vscode from 'vscode';
 import { CompletionManager } from '../services/completion/CompletionManager';
-import { LLMServiceManager } from '../services/LLMServiceManager';
+import { LLMServiceManager } from '../services/llm/LLMServiceManager';
 
 // Mock LLMServiceManager
 class MockLLMServiceManager {

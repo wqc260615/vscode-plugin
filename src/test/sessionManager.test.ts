@@ -1,13 +1,13 @@
 import * as assert from 'assert';
 import * as vscode from 'vscode';
-import { SessionManager, ChatSession, ChatMessage } from '../services/sessionManager';
+import { SessionManager, ChatSession, ChatMessage } from '../services/session/sessionManager';
 
 suite('SessionManager Test Suite', () => {
     let sessionManager: SessionManager;
     let mockContext: any;
 
     setup(() => {
-        // 创建模拟的扩展上下文
+        // Create mock extension context
         mockContext = {
             subscriptions: [],
             globalState: {
@@ -127,7 +127,7 @@ suite('SessionManager Test Suite', () => {
         const sessions = sessionManager.getAllSessions();
         const sessionToClear = sessions[0];
         
-        // 添加一些消息到会话
+        // Add some messages to the session
         sessionManager.addMessage(sessionToClear.id, 'Hello', true);
         sessionManager.addMessage(sessionToClear.id, 'Hi there!', false);
 
@@ -184,7 +184,7 @@ suite('SessionManager Test Suite', () => {
     });
 
     test('getActiveSession should return null when no active session', () => {
-        // 移除所有会话
+        // Remove all sessions
         const sessions = sessionManager.getAllSessions();
         sessions.forEach(session => {
             sessionManager.removeSession(session.id);
@@ -239,7 +239,7 @@ suite('SessionManager Test Suite', () => {
         assert.strictEqual(importedSession!.name, 'Imported Session', 'Session name should match');
         assert.strictEqual(importedSession!.messages.length, 1, 'Should have imported messages');
 
-        // 验证会话是否被添加到列表中
+        // Verify session is added to the list
         const allSessions = sessionManager.getAllSessions();
         const foundSession = allSessions.find(s => s.id === importedSession!.id);
         assert.ok(foundSession, 'Imported session should be in the sessions list');
@@ -271,7 +271,7 @@ suite('SessionManager Test Suite', () => {
         const sessions = sessionManager.getAllSessions();
         const session = sessions[0];
 
-        // 添加多个消息
+        // Add multiple messages
         const message1 = sessionManager.addMessage(session.id, 'User message 1', true);
         const message2 = sessionManager.addMessage(session.id, 'Assistant response 1', false);
         const message3 = sessionManager.addMessage(session.id, 'User message 2', true);
@@ -284,7 +284,7 @@ suite('SessionManager Test Suite', () => {
         assert.ok(updatedSession, 'Session should exist');
         assert.strictEqual(updatedSession!.messages.length, 3, 'Should have 3 messages');
 
-        // 验证消息顺序和内容
+        // Verify message order and content
         assert.strictEqual(updatedSession!.messages[0].content, 'User message 1', 'First message should match');
         assert.ok(updatedSession!.messages[0].isUser, 'First message should be from user');
         assert.strictEqual(updatedSession!.messages[1].content, 'Assistant response 1', 'Second message should match');
@@ -299,7 +299,7 @@ suite('SessionManager Test Suite', () => {
 
         const beforeUpdate = session.updatedAt.getTime();
         
-        // 添加消息以更新时间戳
+        // Add message to update timestamp
         sessionManager.addMessage(session.id, 'Test message', true);
         
         const updatedSession = sessionManager.getSession(session.id);

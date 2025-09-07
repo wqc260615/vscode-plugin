@@ -2,20 +2,20 @@ import * as assert from 'assert';
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
-import { ProjectContextProcessor, ReferenceFile } from '../services/projectContextProcessor';
+import { ProjectContextProcessor, ReferenceFile } from '../services/context/projectContextProcessor';
 
 suite('ProjectContextProcessor Test Suite', () => {
     let contextProcessor: ProjectContextProcessor;
     let testWorkspacePath: string;
 
     suiteSetup(async () => {
-        // 创建测试工作区
+        // Create test workspace
         testWorkspacePath = path.join(__dirname, 'test-project');
         if (!fs.existsSync(testWorkspacePath)) {
             fs.mkdirSync(testWorkspacePath, { recursive: true });
         }
 
-        // 创建测试文件
+        // Create test files
         const testFiles = [
             { name: 'main.js', content: 'console.log("Hello World");' },
             { name: 'utils.js', content: 'function helper() { return true; }' },
@@ -31,7 +31,7 @@ suite('ProjectContextProcessor Test Suite', () => {
             fs.writeFileSync(filePath, file.content);
         }
 
-        // 创建子目录
+        // Create subdirectory
         const subDir = path.join(testWorkspacePath, 'src');
         fs.mkdirSync(subDir, { recursive: true });
         fs.writeFileSync(path.join(subDir, 'index.js'), 'export default {};');
@@ -42,12 +42,12 @@ suite('ProjectContextProcessor Test Suite', () => {
     });
 
     teardown(() => {
-        // 清理引用文件
+        // Clean up reference files
         contextProcessor.clearReferenceFiles();
     });
 
     suiteTeardown(async () => {
-        // 清理测试工作区
+        // Clean up test workspace
         if (fs.existsSync(testWorkspacePath)) {
             fs.rmSync(testWorkspacePath, { recursive: true, force: true });
         }
@@ -63,7 +63,7 @@ suite('ProjectContextProcessor Test Suite', () => {
     });
 
     test('initProjectContext should initialize project context', async () => {
-        // 模拟工作区文件夹
+        // Mock workspace folders
         const mockWorkspaceFolders = [
             {
                 uri: vscode.Uri.file(testWorkspacePath),
@@ -72,7 +72,7 @@ suite('ProjectContextProcessor Test Suite', () => {
             }
         ];
 
-        // 使用 Object.defineProperty 来模拟只读属性
+        // Use Object.defineProperty to mock read-only property
         const originalWorkspaceFolders = vscode.workspace.workspaceFolders;
         Object.defineProperty(vscode.workspace, 'workspaceFolders', {
             value: mockWorkspaceFolders,
@@ -83,11 +83,11 @@ suite('ProjectContextProcessor Test Suite', () => {
         try {
             await contextProcessor.initProjectContext();
             
-            // 检查是否成功初始化
+            // Verify initialized successfully
             const sourceFiles = contextProcessor.getSourceFiles();
             assert.ok(Array.isArray(sourceFiles), 'Source files should be initialized');
         } finally {
-            // 恢复原始属性
+            // Restore original property
             Object.defineProperty(vscode.workspace, 'workspaceFolders', {
                 value: originalWorkspaceFolders,
                 writable: false,
@@ -112,11 +112,11 @@ suite('ProjectContextProcessor Test Suite', () => {
     test('removeReferenceFile should remove file from reference list', async () => {
         const filePath = path.join(testWorkspacePath, 'main.js');
         
-        // 先添加文件
+        // Add file first
         await contextProcessor.addReferenceFile(filePath);
         assert.ok(contextProcessor.getReferenceFiles().find(f => f.path === filePath), 'File should be added');
         
-        // 然后移除文件
+        // Then remove file
         const result = contextProcessor.removeReferenceFile(filePath);
         assert.ok(result, 'Should successfully remove reference file');
         assert.ok(!contextProcessor.getReferenceFiles().find(f => f.path === filePath), 'File should be removed');
@@ -129,13 +129,13 @@ suite('ProjectContextProcessor Test Suite', () => {
             path.join(testWorkspacePath, 'config.json')
         ];
         
-        // 添加多个文件
+        // Add multiple files
         for (const file of files) {
             await contextProcessor.addReferenceFile(file);
         }
         assert.strictEqual(contextProcessor.getReferenceFiles().length, 3, 'Should have 3 reference files');
         
-        // 清空引用文件
+        // Clear reference files
         contextProcessor.clearReferenceFiles();
         assert.strictEqual(contextProcessor.getReferenceFiles().length, 0, 'Should have no reference files');
     });
@@ -157,7 +157,7 @@ suite('ProjectContextProcessor Test Suite', () => {
     });
 
     test('getSourceFiles should return source files', async () => {
-        // 模拟工作区文件夹
+        // Mock workspace folders
         const mockWorkspaceFolders = [
             {
                 uri: vscode.Uri.file(testWorkspacePath),
@@ -166,7 +166,7 @@ suite('ProjectContextProcessor Test Suite', () => {
             }
         ];
 
-        // 使用 Object.defineProperty 来模拟只读属性
+        // Use Object.defineProperty to mock read-only property
         const originalWorkspaceFolders = vscode.workspace.workspaceFolders;
         Object.defineProperty(vscode.workspace, 'workspaceFolders', {
             value: mockWorkspaceFolders,
@@ -180,7 +180,7 @@ suite('ProjectContextProcessor Test Suite', () => {
             const sourceFiles = contextProcessor.getSourceFiles();
             assert.ok(Array.isArray(sourceFiles), 'Should return source files array');
         } finally {
-            // 恢复原始属性
+            // Restore original property
             Object.defineProperty(vscode.workspace, 'workspaceFolders', {
                 value: originalWorkspaceFolders,
                 writable: false,
@@ -198,7 +198,7 @@ suite('ProjectContextProcessor Test Suite', () => {
     });
 
     test('clearProjectContext should clear project context', async () => {
-        // 模拟工作区文件夹
+        // Mock workspace folders
         const mockWorkspaceFolders = [
             {
                 uri: vscode.Uri.file(testWorkspacePath),
@@ -207,7 +207,7 @@ suite('ProjectContextProcessor Test Suite', () => {
             }
         ];
 
-        // 使用 Object.defineProperty 来模拟只读属性
+        // Use Object.defineProperty to mock read-only property
         const originalWorkspaceFolders = vscode.workspace.workspaceFolders;
         Object.defineProperty(vscode.workspace, 'workspaceFolders', {
             value: mockWorkspaceFolders,
@@ -217,7 +217,7 @@ suite('ProjectContextProcessor Test Suite', () => {
 
         try {
             await contextProcessor.initProjectContext();
-            // 检查是否有源文件，如果没有则跳过此测试
+            // Check if there are source files; skip test if none
             const sourceFiles = contextProcessor.getSourceFiles();
             if (sourceFiles.length === 0) {
                 console.log('No source files found, skipping clearProjectContext test');
@@ -227,7 +227,7 @@ suite('ProjectContextProcessor Test Suite', () => {
             contextProcessor.clearProjectContext();
             assert.strictEqual(contextProcessor.getSourceFiles().length, 0, 'Should clear source files');
         } finally {
-            // 恢复原始属性
+            // Restore original property
             Object.defineProperty(vscode.workspace, 'workspaceFolders', {
                 value: originalWorkspaceFolders,
                 writable: false,
@@ -263,7 +263,7 @@ suite('ProjectContextProcessor Test Suite', () => {
         const javaFile = referenceFiles.find(f => f.name === 'test.java');
         assert.ok(javaFile, 'Java file should be added');
         
-        // 检查Java结构提取是否工作
+        // Verify Java structure extraction works
         const content = javaFile!.content;
         assert.ok(typeof content === 'string', 'Content should be string');
         assert.ok(content.length > 0, 'Content should not be empty');
@@ -277,14 +277,14 @@ suite('ProjectContextProcessor Test Suite', () => {
         const tsFile = referenceFiles.find(f => f.name === 'test.ts');
         assert.ok(tsFile, 'TypeScript file should be added');
         
-        // 检查TypeScript结构提取是否工作
+        // Verify TypeScript structure extraction works
         const content = tsFile!.content;
         assert.ok(typeof content === 'string', 'Content should be string');
         assert.ok(content.length > 0, 'Content should not be empty');
     });
 
     test('should handle configuration changes', () => {
-        // 测试配置变化处理
+        // Test configuration change handling
         const config = vscode.workspace.getConfiguration('aiAssistant');
         const maxContextFiles = config.get('maxContextFiles', 50);
         
@@ -293,7 +293,7 @@ suite('ProjectContextProcessor Test Suite', () => {
     });
 
     test('should handle empty workspace gracefully', async () => {
-        // 模拟空工作区
+        // Mock empty workspace
         const originalWorkspaceFolders = vscode.workspace.workspaceFolders;
         Object.defineProperty(vscode.workspace, 'workspaceFolders', {
             value: [],
@@ -304,12 +304,12 @@ suite('ProjectContextProcessor Test Suite', () => {
         try {
             await contextProcessor.initProjectContext();
             
-            // 应该不会抛出异常
+            // Should not throw
             const sourceFiles = contextProcessor.getSourceFiles();
             assert.ok(Array.isArray(sourceFiles), 'Should return empty array for empty workspace');
             assert.strictEqual(sourceFiles.length, 0, 'Should have no source files for empty workspace');
         } finally {
-            // 恢复原始属性
+            // Restore original property
             Object.defineProperty(vscode.workspace, 'workspaceFolders', {
                 value: originalWorkspaceFolders,
                 writable: false,
@@ -319,8 +319,8 @@ suite('ProjectContextProcessor Test Suite', () => {
     });
 
     test('should handle large file content gracefully', async () => {
-        // 创建一个大文件
-        const largeContent = 'console.log("test");\n'.repeat(1000); // 约20KB
+        // Create a large file
+        const largeContent = 'console.log("test");\n'.repeat(1000); // ~20KB
         const largeFilePath = path.join(testWorkspacePath, 'large.js');
         fs.writeFileSync(largeFilePath, largeContent);
         
@@ -331,8 +331,8 @@ suite('ProjectContextProcessor Test Suite', () => {
         const largeFile = referenceFiles.find(f => f.name === 'large.js');
         assert.ok(largeFile, 'Large file should be added');
         
-        // 检查内容是否被截断 - 对于引用文件，内容应该保持完整
-        // 只有源文件会被截断，引用文件保持原样
+        // Verify content is not truncated for reference files
+        // Only source files may be truncated; reference files remain intact
         assert.ok(largeFile!.content.length > 0, 'Large file content should not be empty');
         assert.ok(largeFile!.content.includes('console.log("test")'), 'Large file should contain expected content');
     });
@@ -340,11 +340,11 @@ suite('ProjectContextProcessor Test Suite', () => {
     test('should handle duplicate file addition', async () => {
         const filePath = path.join(testWorkspacePath, 'main.js');
         
-        // 第一次添加
+        // First addition
         const result1 = await contextProcessor.addReferenceFile(filePath);
         assert.ok(result1, 'First addition should succeed');
         
-        // 第二次添加相同文件
+        // Second addition of the same file
         const result2 = await contextProcessor.addReferenceFile(filePath);
         assert.ok(result2, 'Second addition should succeed');
         

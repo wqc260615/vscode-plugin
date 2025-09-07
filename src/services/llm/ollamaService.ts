@@ -1,8 +1,8 @@
 import * as vscode from 'vscode';
-import { ChatSession, ChatMessage } from './sessionManager';
-import { LLMErrorHandler, ErrorType, ResponseCache } from './errorHandler';
+import { ChatSession, ChatMessage } from '../session/sessionManager';
+import { LLMErrorHandler, ErrorType, ResponseCache } from '../core/error/errorHandler';
 import { ILLMService, ILLMServiceConfig } from './interfaces/ILLMService';
-import { PerformanceMonitor } from './performanceMonitor';
+import { PerformanceMonitor } from '../performance/performanceMonitor';
 
 export interface OllamaModel {
     name: string;
@@ -229,7 +229,7 @@ export class OllamaService implements ILLMService {
                 }
 
                 // Build message history
-                const messages = session.messages.map(msg => ({
+                const messages = session.messages.map((msg: ChatMessage) => ({
                     role: msg.isUser ? 'user' : 'assistant',
                     content: msg.content
                 }));
@@ -309,7 +309,7 @@ export class OllamaService implements ILLMService {
             });
             
             // Notify user of the error
-            this.errorHandler.showErrorToUser(errorDetails, true).then(action => {
+            this.errorHandler.showErrorToUser(errorDetails, true).then((action: string | undefined) => {
                 if (action === 'retry') {
                     // User chose to retry
                     setTimeout(() => {
@@ -342,7 +342,7 @@ export class OllamaService implements ILLMService {
                     throw new Error('Ollama service is not available');
                 }
 
-                const messages = session.messages.map(msg => ({
+                const messages = session.messages.map((msg: ChatMessage) => ({
                     role: msg.isUser ? 'user' : 'assistant',
                     content: msg.content
                 }));
