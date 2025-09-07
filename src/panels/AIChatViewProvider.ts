@@ -73,6 +73,9 @@ export class AIChatViewProvider implements vscode.WebviewViewProvider {
             case 'addReference':
                 await this._addReferenceFile();
                 break;
+            case 'removeReference':
+                await this._removeReferenceFile(message.data.fileName);
+                break;
             case 'clearMessages':
                 await this._clearMessages(message.data.sessionId);
                 break;
@@ -113,6 +116,9 @@ export class AIChatViewProvider implements vscode.WebviewViewProvider {
 
         // Load model list
         await this._loadModels();
+        
+        // Load reference files
+        this._loadReferenceFiles();
     }
 
     private async _loadModels() {
@@ -137,6 +143,25 @@ export class AIChatViewProvider implements vscode.WebviewViewProvider {
                 type: 'error',
                 data: { message: errorDetails.userMessage }
             });
+        }
+    }
+
+    private _loadReferenceFiles() {
+        if (!this._view) {
+            return;
+        }
+
+        try {
+            const referenceFiles = this.contextProcessor.getReferenceFiles();
+            
+            this._view.webview.postMessage({
+                type: 'referenceFilesLoaded',
+                data: { 
+                    referenceFiles: referenceFiles.map(f => f.name)
+                }
+            });
+        } catch (error) {
+            console.error('Error loading reference files:', error);
         }
     }
 
@@ -359,6 +384,39 @@ export class AIChatViewProvider implements vscode.WebviewViewProvider {
             } else {
                 vscode.window.showErrorMessage('Failed to add reference file');
             }
+        }
+    }
+
+    private async _removeReferenceFile(fileName: string) {
+        if (!this._view) {
+            return;
+        }
+
+        try {
+            // Find the file path from the reference files list
+            const referenceFiles = this.contextProcessor.getReferenceFiles();
+            const fileToRemove = referenceFiles.find(f => f.name === fileName);
+            
+            if (fileToRemove) {
+                const success = this.contextProcessor.removeReferenceFile(fileToRemove.path);
+                
+                if (success) {
+                    this._view.webview.postMessage({
+                        type: 'referenceRemoved',
+                        data: { fileName }
+                    });
+                    
+                    vscode.window.showInformationMessage(`Reference file removed: ${fileName}`);
+                    
+                } else {
+                    vscode.window.showErrorMessage(`Failed to remove reference file: ${fileName}`);
+                }
+            } else {
+                vscode.window.showWarningMessage(`Reference file not found: ${fileName}`);
+            }
+        } catch (error) {
+            console.error('Error removing reference file:', error);
+            vscode.window.showErrorMessage(`Error removing reference file: ${error}`);
         }
     }
 

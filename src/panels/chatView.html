@@ -714,6 +714,16 @@
                     addReferenceTag(message.data.fileName);
                     showStatus('Reference added: ' + message.data.fileName);
                     break;
+                case 'referenceRemoved':
+                    // The UI is already updated by the removeReferenceTag function
+                    showStatus('Reference removed: ' + message.data.fileName);
+                    break;
+                case 'referenceFilesLoaded':
+                    // Load existing reference files
+                    message.data.referenceFiles.forEach(fileName => {
+                        addReferenceTag(fileName);
+                    });
+                    break;
                 case 'error':
                     showStatus('Error: ' + message.data.message, true);
                     break;
@@ -1160,6 +1170,11 @@
         function removeReferenceTag(element, fileName) {
             element.parentElement.remove();
             referenceFiles = referenceFiles.filter(f => f !== fileName);
+            // Send message to backend to actually remove the reference file
+            vscode.postMessage({ 
+                type: 'removeReference', 
+                data: { fileName: fileName } 
+            });
         }
 
         function handleKeyPress(event) {
