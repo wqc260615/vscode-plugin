@@ -578,14 +578,14 @@ export class ProjectContextProcessor {
         const sourceFiles = addedFiles.filter(f => f.type === 'source');
 
         // Add project source file context
-        // if (sourceFiles.length > 0) {
-        //     prompt += "=== Project Source Files ===\n";
-        //     for (let i = 0; i < sourceFiles.length; i++) {
-        //         const file = sourceFiles[i];
-        //         prompt += `\n--- Source File ${i + 1}: ${file.name} ---\n`;
-        //         prompt += file.content + '\n';
-        //     }
-        // }
+        if (sourceFiles.length > 0) {
+            prompt += "=== Project Source Files ===\n";
+            for (let i = 0; i < sourceFiles.length; i++) {
+                const file = sourceFiles[i];
+                prompt += `\n--- Source File ${i + 1}: ${file.name} ---\n`;
+                prompt += file.content + '\n';
+            }
+        }
 
         // Add user-added reference files
         if (referenceFiles.length > 0) {
